@@ -28,7 +28,7 @@ A simple web app for predicting the pathogenicity of DNA mutations (variant effe
 1. Install Python 3.10
 2. Clone the repo and enter backend folder:
    ```bash
-   git clone --recurse-submodules <repo-url>
+   git clone --recurse-submodules https://github.com/shivazshu/evo2-vep.git
    cd evo2-backend
    pip install -r requirements.txt
    modal setup
