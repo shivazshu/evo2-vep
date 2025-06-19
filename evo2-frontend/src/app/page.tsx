@@ -68,7 +68,6 @@ export default function HomePage() {
         setIsLoading(true);
         const data = await getGenomeChromosomes(selectedGenome);
         setChromosomes(data.chromosomes);
-        // console.log(data.chromosomes);
         if (data.chromosomes.length > 0) {
           setSelectedChromosome(data.chromosomes[0]!.name);
         }
@@ -88,12 +87,24 @@ export default function HomePage() {
   ) => {
     try {
       setIsLoading(true);
+      setError(null);
       const data = await searchGenes(query, genome);
       const results = filterFn ? data.results.filter(filterFn) : data.results;
 
       setSearchResults(results);
+      
+      // Provide feedback if no results found
+      if (results.length === 0) {
+        if (mode === "search") {
+          setError(`No genes found matching "${query}". Please check the spelling or try a different search term.`);
+        } else {
+          setError(`No genes found on ${selectedChromosome}. This chromosome may not have any genes in the current database.`);
+        }
+      }
     } catch (err) {
-      setError("Faield to search genes");
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to search genes: ${errorMessage}. Please check your internet connection and try again.`);
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
     }

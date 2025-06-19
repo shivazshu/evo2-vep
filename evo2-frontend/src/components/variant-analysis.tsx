@@ -44,7 +44,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
     const [variantError, setVariantError] = useState<string | null>(null);
     const alternativeInputRef = useRef<HTMLInputElement>(null);
     const [sequenceAssertion, setSequenceAssertion] = useState<null | {
-        fetchedNucleotide: string;
+        fetchedNucleotide: string | undefined;
         clinvarReference: string;
         match: boolean;
         error?: string;
@@ -216,24 +216,19 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             return;
         }
 
-        if (!chromosome || !actualPosition) {
-            console.error("Invalid parameters for UCSC API fetchGeneSequence:", { chromosome, actualPosition });
-            setSequenceAssertion({
-                fetchedNucleotide: "",
-                clinvarReference: clinvarReference,
-                match: false,
-                error: "Invalid parameters for UCSC API call.",
-                position: actualPosition
-            });
-            return;
-        }
+        setShowAssertion(true);
+        setSequenceAssertion({
+            fetchedNucleotide: undefined,
+            clinvarReference: clinvarReference,
+            match: false,
+            position: actualPosition
+        });
 
-        setSequenceAssertion(null);
         void fetchGeneSequence(
-            chromosome,
+            expectedChromosome,
             actualPosition,
             actualPosition,
-            genomeId
+            expectedGenome
         ).then(({ sequence, error }) => {
             if (error) {
                 setSequenceAssertion({
@@ -278,8 +273,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                 position: actualPosition
             });
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [clinvarVariants, variantPosition, genomeId, chromosome]);
+    }, [clinvarVariants, variantPosition, genomeId, chromosome, sequenceAssertion, geneDetails, gene]);
 
     return (
         <Card className="gap-0 border-none bg-white py-0 shadow-sm">
@@ -454,7 +448,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                                     <span className="font-medium">Position:</span> {sequenceAssertion.position.toLocaleString()}
                                                 </div>
                                                 <div className="mb-2">
-                                                    <span className="font-medium">Fetched nucleotide from UCSC:</span> <span className={`font-mono ${getNucleotideColorClass(sequenceAssertion.fetchedNucleotide)} `}>{sequenceAssertion.fetchedNucleotide}</span>
+                                                    <span className="font-medium">Fetched nucleotide from UCSC:</span> <span className={`font-mono ${sequenceAssertion.fetchedNucleotide ? getNucleotideColorClass(sequenceAssertion.fetchedNucleotide) : ''} `}>{sequenceAssertion.fetchedNucleotide ?? 'Loading...'}</span>
                                                     {sequenceAssertion.isNegativeStrand && (
                                                         <span className="ml-1 text-xs text-[var(--color-foreground)]/70">
                                                             (reverse complemented)*
@@ -533,7 +527,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                             </div>
                             <div>
                                 <div className="mb-2">
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]">Prediction</div>
+                                    <div className="text-xs font-medium text-[var(--color-foreground)]">Pathogenicity Prediction</div>
                                     <div 
                                     className={`inline-block rounded-lg mt-1.5 mb-3 px-3 py-2 text-xs ${getClassificationColorClasses(variantResult.prediction)}`}
                                     >{variantResult.prediction}</div>

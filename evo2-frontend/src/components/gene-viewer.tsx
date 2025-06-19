@@ -44,15 +44,12 @@ export default function GeneViewer({
 
         const variantAnalysisRef = useRef<VariantAnalysisHandle>(null);
 
-
-        const updateClinvarVariant = (clinvar_id: string, updateVariant: ClinvarVariants) => {
+        const updateClinvarVariant = useCallback((clinvar_id: string, updateVariant: ClinvarVariants) => {
             setClinvarVariants((currentVariants) => currentVariants.map((v) => v.clinvar_id == clinvar_id ? updateVariant : v))
-        }
+        }, []);
 
         const [comparisonVariant, setComparisonVariant] = useState<ClinvarVariants | null>(null)
  
-
-        
         const fetchGeneSequence = useCallback(async (start: number, end : number) => {
             try {
                 setIsLoadingSequence(true);
@@ -81,7 +78,19 @@ export default function GeneViewer({
                 setGeneDetails(null); 
 
                 if (!gene.gene_id) {
-                    setError("Gene ID is missing, can't fetch details.");
+                    setError("Gene ID is missing. This gene may not exist in the database or may have been entered incorrectly.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (!gene.chrom || gene.chrom === '') {
+                    setError("Chromosome information is missing for this gene. This may indicate invalid gene data.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (!gene.symbol || gene.symbol.trim() === '') {
+                    setError("Gene symbol is missing. This may indicate invalid gene data.");
                     setIsLoading(false);
                     return;
                 }
@@ -89,6 +98,12 @@ export default function GeneViewer({
                 try { 
                     const {geneDetails: fetchedDetails, geneBounds: fetchedGeneBounds, initialRange: fetchedRange} = await fetchGeneDetails(gene.gene_id);
     
+                    if (!fetchedDetails || !fetchedGeneBounds) {
+                        setError(`Unable to fetch details for gene ${gene.symbol} (ID: ${gene.gene_id}). This gene may not exist in the current genome assembly or may have been entered incorrectly.`);
+                        setIsLoading(false);
+                        return;
+                    }
+
                     setGeneDetails(fetchedDetails);
                     setGeneBounds(fetchedGeneBounds);
     
@@ -97,8 +112,9 @@ export default function GeneViewer({
                         setEndPosition(String(fetchedRange.end))
                         await fetchGeneSequence(fetchedRange.start, fetchedRange.end);
                     }
-                } catch {
-                    setError("Failed to load gene details. Please try again later.");
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    setError(`Failed to load gene details for ${gene.symbol}: ${errorMessage}. Please verify the gene name and try again.`);
                 } finally {
                     setIsLoading(false);
                 }
@@ -149,110 +165,110 @@ export default function GeneViewer({
             void fetchGeneSequence(start, end);
         }, [startPosition, endPosition, fetchGeneSequence, geneBounds]);
 
+        const fetchClinvarVariants = useCallback(async () => {
+            if (!gene.chrom || !geneBounds) return;
 
-    const fetchClinvarVariants = useCallback(async () => {
-        if (!gene.chrom || !geneBounds) return;
+            setIsLoadingClinvar(true);
+            setClinvarError(null);
 
-        setIsLoadingClinvar(true);
-        setClinvarError(null);
+            try {
+                const variants = await apiFetchClinvarVariants(
+                    gene.chrom,
+                    geneBounds,
+                    genomeId,
+                );
 
-        try {
-            const variants = await apiFetchClinvarVariants(
-                gene.chrom,
-                geneBounds,
-                genomeId,
-            );
+                setClinvarVariants(variants);
 
-            setClinvarVariants(variants);
-            // console.log(variants);
+            } catch(err) {
+                console.error(err);
+                setClinvarError("Error in fetching ClinVar Variants.");
+                setClinvarVariants([]);
+            } finally {
+                setIsLoadingClinvar(false);
+            }
+        }, [gene.chrom, geneBounds, genomeId]);
 
-        } catch(err) {
-            console.error(err);
-            setClinvarError("Error in fetching ClinVar Variants.");
-            setClinvarVariants([]);
-        } finally {
-            setIsLoadingClinvar(false);
-        }
-    }, [gene.chrom, geneBounds, genomeId]);
+        useEffect(() => {
+            if (geneBounds) {
+                void fetchClinvarVariants();
+            }
+        }, [geneBounds, fetchClinvarVariants]);
 
-    useEffect(() => {
-        if (geneBounds) {
-            void fetchClinvarVariants();
-        }
-    }, [geneBounds, fetchClinvarVariants]);
+        const showComparison = useCallback((variant: ClinvarVariants) => {
+            if (variant.evo2Result) {
+                setComparisonVariant(variant);
+            }
+        }, []);
 
-    const showComparison = (variant: ClinvarVariants) => {
-        if (variant.evo2Result) {
-            setComparisonVariant(variant);
-        }
-    }
+        if (isLoading) {
+            return (
+            <div className="flex h-64 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-muted)] border-t-[var(--color-foreground)]">
 
-    if (isLoading) {
-        return (
-        <div className="flex h-64 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-muted)] border-t-[var(--color-foreground)]">
-
+                </div>
             </div>
+            )
+        }
+
+        return <div className="space-y-6">
+            <Button 
+            variant="ghost" 
+            size="sm"  
+            className="cursor-pointer text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/70"
+            onClick={onClose}>
+                <ArrowLeft className="mr-2 w-4 h-4"/>
+                Back to results
+            </Button>
+
+            <VariantAnalysis 
+            ref={variantAnalysisRef}
+            gene={gene} 
+            genomeId={genomeId} 
+            chromosome={gene.chrom} 
+            clinvarVariants={clinvarVariants} 
+            referenceSequence={activeReferenceNucleotide} 
+            sequencePosition={activeSequencePosition} 
+            geneBounds={geneBounds}
+            geneDetails={geneDetails}
+             />
+
+            <KnownVaraints 
+            clinvarVariants={clinvarVariants}
+            isLoadingClinvar={isLoadingClinvar}
+            clinvarError={clinvarError}
+            refreshVariants={fetchClinvarVariants}
+            showComparison={showComparison} 
+            updateClivarVariant={updateClinvarVariant} 
+            genomeId={genomeId} 
+            gene={gene}
+            geneBounds={geneBounds}
+            />
+
+            <GeneSequence 
+            geneBounds={geneBounds} 
+            geneDetails={geneDetails} 
+            startPosition={startPosition} 
+            endPosition={endPosition} 
+            onStartPositionChange={setStartPosition}
+            onEndPositionChange={setEndPosition}
+            sequenceData={geneSequence}
+            sequenceRange={actualRange }
+            isLoading={isLoadingSequence}
+            error={error}
+            onSequenceLoadRequest={handleLoadSequence }
+            onSequenceClick={handleSequenceClick}
+            maxViewRange={10000}
+            genomeId={genomeId}
+            gene={gene}
+            />
+                
+            <GeneInformation gene={gene} geneDetails={geneDetails} geneBounds={geneBounds}/>
+
+            <VariantComparisonModal 
+                comparisonVariant={comparisonVariant} 
+                onClose={() => setComparisonVariant(null)}
+            /> 
+
         </div>
-        )
-    }
-
-
-    return <div className="space-y-6">
-        <Button 
-        variant="ghost" 
-        size="sm"  
-        className="cursor-pointer text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/70"
-        onClick={onClose}>
-            <ArrowLeft className="mr-2 w-4 h-4"/>
-            Back to results
-        </Button>
-
-        <VariantAnalysis 
-        ref={variantAnalysisRef}
-        gene={gene} 
-        genomeId={genomeId} 
-        chromosome={gene.chrom} 
-        clinvarVariants={clinvarVariants} 
-        referenceSequence={activeReferenceNucleotide} 
-        sequencePosition={activeSequencePosition} 
-        geneBounds={geneBounds}
-        geneDetails={geneDetails}
-         />
-
-        <KnownVaraints 
-        refreshVariants={fetchClinvarVariants} 
-        showComparison={showComparison} 
-        updateClivarVariant={updateClinvarVariant } 
-        clinvarVariants={clinvarVariants}
-        isLoadingClinvar={isLoadingClinvar} 
-        clinvarError={clinvarError} 
-        genomeId={genomeId} 
-        gene={gene}
-        />
-
-        <GeneSequence 
-        geneBounds={geneBounds} 
-        geneDetails={geneDetails} 
-        startPosition={startPosition} 
-        endPosition={endPosition} 
-        onStartPositionChange={setStartPosition}
-        onEndPositionChange={setEndPosition}
-        sequenceData={geneSequence}
-        sequenceRange={actualRange }
-        isLoading={isLoadingSequence}
-        error={error}
-        onSequenceLoadRequest={handleLoadSequence }
-        onSequenceClick={handleSequenceClick}
-        maxViewRange={10000}
-        />
-            
-        <GeneInformation gene={gene} geneDetails={geneDetails} geneBounds={geneBounds}/>
-
-        <VariantComparisonModal 
-            comparisonVariant={comparisonVariant} 
-            onClose={() => setComparisonVariant(null)}
-        /> 
-
-    </div>
 }

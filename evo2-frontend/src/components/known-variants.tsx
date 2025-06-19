@@ -1,11 +1,13 @@
 "use client"
 
-import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch } from "~/utils/genome-api"
+import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch, clearCache, clearRateLimitCache } from "~/utils/genome-api"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { BarChart2, ExternalLink, RefreshCw, Search, Shield, Zap } from "lucide-react";
+import { BarChart2, ExternalLink, RefreshCw, Shield, Zap } from "lucide-react";
 import { getClassificationColorClasses } from "~/utils/coloring-utils";
+import { useState, useCallback } from "react";
+import { useQueueStatus } from "~/hooks/use-queue-status";
 
 export default function KnownVaraints({
     refreshVariants,
@@ -16,6 +18,7 @@ export default function KnownVaraints({
     clinvarError,
     genomeId,
     gene,
+    geneBounds,
 } : {
     refreshVariants: () => void;
     showComparison: (variant: ClinvarVariants) => void,
@@ -25,7 +28,30 @@ export default function KnownVaraints({
     clinvarError: string | null;
     genomeId: string;
     gene: GeneFromSearch;
+    geneBounds: { min: number; max: number } | null;
 }) {
+    const [isRefreshLoading, setIsRefreshLoading] = useState(false);
+
+    // Use custom hook for queue status
+    const { ncbiQueueStatus, isCurrentRegionQueuedOrProcessing } = useQueueStatus({
+        ncbiMeta: geneBounds 
+            ? { 
+                chrom: gene.chrom, 
+                genomeId, 
+                start: Math.min(geneBounds.min, geneBounds.max), 
+                end: Math.max(geneBounds.min, geneBounds.max) 
+              }
+            : { chrom: gene.chrom, genomeId }
+    });
+
+    const handleRefreshClick = useCallback(async () => {
+        setIsRefreshLoading(true);
+        try {
+            refreshVariants();
+        } finally {
+            setTimeout(() => setIsRefreshLoading(false), 1000);
+        }
+    }, [refreshVariants]);
 
     const analyzeVariant =  async (variant: ClinvarVariants) => {
         let variantDetails = null;
@@ -82,153 +108,189 @@ export default function KnownVaraints({
     };
 
     return (
-        <Card className="gap-0 border-none bg-white py-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pt-4 pb-2">
-            <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">
-                Known Variants in Gene from ClinVar
-            </CardTitle>
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={refreshVariants}
-                disabled={isLoadingClinvar}
-                className="h-7 cursor-pointer text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/70"
-            >
-                <RefreshCw className="mr-1 h-3 w-3" />
-                Refresh
-            </Button>
-        </CardHeader>
-        <CardContent className="pb-4">
-            {clinvarError && (
-            <div className="mb-4 rounded-md bg-[var(--color-destructive)]/10 p-3 text-xs text-[var(--color-destructive)]">
-                {clinvarError}
-            </div>
-            )}
-    
-            {isLoadingClinvar ? (
-            <div className="flex justify-center py-6">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)]"></div>
-            </div>
-            ) : clinvarVariants.length > 0 ? (
-            <div className="h-96 max-h-96 overflow-y-scroll rounded-md border border-[var(--color-border)] bg-white">
-                <Table>
-                <TableHeader className="sticky top-0 z-10">
-                    <TableRow className="bg-[var(--color-muted)]/80 hover:bg-[var(--color-muted)]/30">
-                    <TableHead className="py-2 text-xs font-medium text-[var(--color-foreground)]">
-                        Variant
-                    </TableHead>
-                    <TableHead className="py-2 text-xs font-medium text-[var(--color-foreground)]">
-                        Type
-                    </TableHead>
-                    <TableHead className="py-2 text-xs font-medium text-[var(--color-foreground)]">
-                        Clinical Significance
-                    </TableHead>
-                    <TableHead className="py-2 text-xs font-medium text-[var(--color-foreground)]">
-                        Actions
-                    </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {clinvarVariants.map((variant) => (
-                    <TableRow
-                        key={variant.clinvar_id}
-                        className="border-b border-[var(--color-border)]"
+        <Card className="gap-0 border-none py-0 bg-white shadow-sm">
+            <CardHeader className="pt-4 pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">
+                        Known Variants
+                    </CardTitle>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRefreshClick}
+                        disabled={isRefreshLoading || isLoadingClinvar}
+                        className="h-7 text-xs"
                     >
-                        <TableCell className="py-2">
-                        <div className="text-xs font-medium text-[var(--color-foreground)]">
-                            {variant.title}
-                        </div>
-                        <div className="mt-1 flex items-center gap-1 text-xs text-[var(--color-foreground)]">
-                            <p>Location: {variant.location}</p>
-                            <Button
-                            variant="link"
-                            size="sm"
-                            className="h-6 cursor-pointer px-0 text-xs text-[var(--color-link)] hover:text-[var(--color-link)]/80"
-                            onClick={() =>
-                                window.open(
-                                `https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvar_id}`,
-                                "_blank",
-                                )
-                            }
-                            >
-                            View in ClinVar
-                            <ExternalLink className="ml-1 inline-block h-2 w-2" />
-                            </Button>
-                        </div>
-                        </TableCell>
-                        <TableCell className="py-2 text-xs">
-                        {variant.variation_type}
-                        </TableCell>
-                        <TableCell className="py-2 text-xs">
-                        <div
-                            className={`w-fit rounded-md px-2 py-1 text-center font-normal ${getClassificationColorClasses(variant.classification)}`}
-                        >
-                            {variant.classification || "Unknown"}
-                        </div>
-                        {variant.evo2Result && (
-                            <div className="mt-2">
-                            <div
-                                className={`flex w-fit items-center gap-1 rounded-md px-2 py-1 text-center ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
-                            >
-                                <Shield className="h-3 w-3" />
-                                <span>Evo2: {variant.evo2Result.prediction}</span>
-                            </div>
-                            </div>
+                        {isRefreshLoading || isLoadingClinvar ? (
+                            <>
+                                <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                                Loading...
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="mr-1 h-3 w-3" />
+                                Refresh
+                            </>
                         )}
-                        </TableCell>
-                        <TableCell className="py-2 text-xs">
-                        <div className="flex items-center justify-start h-full">
-                            {variant.variation_type
-                            .toLowerCase()
-                            .includes("single nucleotide") ? (
-                            !variant.evo2Result ? (
+                    </Button>
+                </div>
+            </CardHeader>
+
+            <CardContent className="pb-4">
+                {clinvarError && (
+                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-destructive)] bg-[var(--color-destructive)]/10 p-3 text-xs text-[var(--color-destructive)]">
+                    <span className="mt-0.5 text-lg">⚠️</span>
+                    <div>
+                        <div className="font-medium">Error loading variants:</div>
+                        <div className="mt-1">{clinvarError}</div>
+                        {clinvarError.includes("429") || clinvarError.includes("rate limit") ? (
+                            <div className="mt-2 flex items-center gap-2">
+                                <span className="text-xs text-[var(--color-foreground)]/70">
+                                    Rate limit reached. Please wait or clear your cache.
+                                </span>
                                 <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 w-44 min-w-[11rem] cursor-pointer border-[var(--color-border)] bg-[var(--color-muted)] px-3 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-border)]/10"
-                                disabled={variant.isAnalyzing}
-                                onClick={() => analyzeVariant(variant)}
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        clearRateLimitCache();
+                                        clearCache();
+                                        window.location.reload();
+                                    }}
+                                    className="h-6 text-xs"
                                 >
-                                {variant.isAnalyzing ? (
-                                    <>
-                                    <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)]"></span>
-                                    Analyzing...
-                                    </>
+                                    Clear Cache & Reload
+                                </Button>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+                )}
+        
+                {/* Queue Status Indicator and Loading */}
+                {isCurrentRegionQueuedOrProcessing && (
+                    <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)]/10 p-3 text-xs text-[var(--color-primary)]">
+                        <span className="mt-0.5 text-lg">⏳</span>
+                        <div>
+                            <div className="font-medium">NCBI Request Queue:</div>
+                            <div className="mt-1">
+                                {ncbiQueueStatus?.isProcessing ? (
+                                    <span>Processing request... ({ncbiQueueStatus?.relevantQueueLength} in queue)</span>
                                 ) : (
-                                    <>
-                                    <Zap className="mr-1 inline-block h-3 w-3" />
-                                    Analyze with Evo2
-                                    </>
+                                    <span>Waiting to process... ({ncbiQueueStatus?.relevantQueueLength} in queue)</span>
                                 )}
-                                </Button>
-                            ) : (
-                                <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 w-44 min-w-[11rem] cursor-pointer border-green-200 bg-green-50 px-3 text-xs text-green-700 hover:bg-green-100"
-                                onClick={() => showComparison(variant)}
-                                >
-                                <BarChart2 className="mr-1 inline-block h-3 w-3" />
-                                Compare Results
-                                </Button>
-                            )
-                            ) : null}
+                            </div>
                         </div>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-                </Table>
-            </div>
-            ) : (
-            <div className="flex h-48 flex-col items-center justify-center text-center text-[var(--color-muted-foreground)]">
-                <Search className="mb-4 h-10 w-10 text-[var(--color-muted-foreground)]" />
-                <p className="text-sm leading-relaxed">
-                No ClinVar variants found for this gene.
-                </p>
-            </div>
-            )}
-        </CardContent>
+                    </div>
+                )}
+
+                {isLoadingClinvar && !isCurrentRegionQueuedOrProcessing && (
+                    <div className="mb-4 flex items-center justify-center py-8">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)]">
+                        </div>
+                    </div>
+                )}
+
+                {!isLoadingClinvar && !isCurrentRegionQueuedOrProcessing && clinvarVariants.length === 0 && !clinvarError && (
+                    <div className="mb-4 flex items-center justify-center py-8 text-sm text-[var(--color-foreground)]/60">
+                        No known variants found for this gene.
+                    </div>
+                )}
+
+                {clinvarVariants.length > 0 && (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-xs">Variant</TableHead>
+                                    <TableHead className="text-xs">Type</TableHead>
+                                    <TableHead className="text-xs">Classification</TableHead>
+                                    <TableHead className="text-xs">Pathogenicity Prediction</TableHead>
+                                    <TableHead className="text-xs">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {clinvarVariants.map((variant) => (
+                                    <TableRow key={variant.clinvar_id}>
+                                        <TableCell className="text-xs">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{variant.title}</span>
+                                                <span className="text-[var(--color-foreground)]/60">
+                                                    {variant.location}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs">
+                                            {variant.variation_type}
+                                        </TableCell>
+                                        <TableCell className="text-xs">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getClassificationColorClasses(variant.classification)}`}>
+                                                <Shield className="h-3 w-3" />
+                                                {variant.classification}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-xs">
+                                            {variant.evo2Result ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getClassificationColorClasses(variant.evo2Result.prediction)}`}>
+                                                        <Zap className="h-3 w-3" />
+                                                        {variant.evo2Result.prediction}
+                                                    </span>
+                                                    <span className="text-[var(--color-foreground)]/60 text-xs">
+                                                        Score: {variant.evo2Result.delta_score.toFixed(3)}
+                                                    </span>
+                                                </div>
+                                            ) : variant.isAnalyzing ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)]"></div>
+                                                    <span className="text-xs">Analyzing...</span>
+                                                </div>
+                                            ) : variant.evo2Error ? (
+                                                <span className="text-xs text-[var(--color-destructive)]">
+                                                    Analysis failed
+                                                </span>
+                                            ) : (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => analyzeVariant(variant)}
+                                                    className="h-6 text-xs"
+                                                >
+                                                    <Zap className="mr-1 h-3 w-3" />
+                                                    Analyze
+                                                </Button>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-xs">
+                                            <div className="flex items-center gap-2">
+                                                {variant.evo2Result && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => showComparison(variant)}
+                                                        className="h-6 text-xs"
+                                                    >
+                                                        <BarChart2 className="mr-1 h-3 w-3" />
+                                                        Compare
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => window.open(`https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvar_id}/`, '_blank')}
+                                                    className="h-6 text-xs"
+                                                >
+                                                    <ExternalLink className="mr-1 h-3 w-3" />
+                                                    ClinVar
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </CardContent>
         </Card>
-    );
+    )
 }

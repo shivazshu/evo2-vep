@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "rea
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { getNucleotideColorClass } from "~/utils/coloring-utils";
+import { clearCache, clearRateLimitCache } from "~/utils/genome-api";
+import { useQueueStatus } from "~/hooks/use-queue-status";
 
 export function GeneSequence( {
     geneBounds,
@@ -20,7 +22,9 @@ export function GeneSequence( {
     error,
     onSequenceLoadRequest,
     onSequenceClick,
-    maxViewRange
+    maxViewRange,
+    genomeId,
+    gene
 } : {
     geneBounds: GeneBounds | null; 
     geneDetails: GeneDetailsFromSearch | null; 
@@ -35,6 +39,8 @@ export function GeneSequence( {
     onSequenceLoadRequest: () => void;
     onSequenceClick:  (position: number, nucleotide: string) => void;
     maxViewRange: number;
+    genomeId: string;
+    gene: { chrom: string };
 }) {
     const [sliderValues, setSliderValues] = useState({start: 0, end: 100});
     const [isDraggingStart, setIsDraggingStart] = useState(false);
@@ -44,7 +50,19 @@ export function GeneSequence( {
     const dragStartX = useRef<{x:number, startPos: number, endPos: number} | null>(null);
     const [hoverPosition, setHoverPosition] = useState<number | null>(null);
     const [mousePosition, setMousePosition] = useState<{x: number, y: number} | null>(null);
+    const [isButtonLoading, setIsButtonLoading] = useState(false);
 
+    // Use custom hook for queue status
+    const start = parseInt(startPosition);
+    const end = parseInt(endPosition);
+    const { ncbiQueueStatus, ucscQueueStatus, isCurrentRegionQueuedOrProcessing } = useQueueStatus({
+        ncbiMeta: gene.chrom && genomeId && !isNaN(start) && !isNaN(end) 
+            ? { chrom: gene.chrom, genomeId, start, end }
+            : undefined,
+        ucscMeta: gene.chrom && genomeId 
+            ? { chrom: gene.chrom, genomeId }
+            : undefined
+    });
 
     const currentRangeSize = useMemo(() => {
         const start = parseInt(startPosition);
@@ -52,7 +70,6 @@ export function GeneSequence( {
 
         return isNaN(start) || isNaN(end) || end < start ? 0 : end - start + 1;
     }, [startPosition, endPosition])
-
 
     useEffect(() => {
         if (!geneBounds) return;
@@ -77,14 +94,12 @@ export function GeneSequence( {
             end: Math.max(0, Math.min(endPercent, 100)),
         });
 
-
     }, [startPosition, endPosition, geneBounds])
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isDraggingEnd && !isDraggingRange && !isDraggingStart) return;
             if (!sliderRef.current || !geneBounds) return;
-
 
             const sliderRect = sliderRef.current.getBoundingClientRect();
             const relativeX = e.clientX - sliderRect.left       
@@ -142,7 +157,6 @@ export function GeneSequence( {
                 onEndPositionChange(String(newEnd));
             }
 
-
         };
     
         const handleMouseUp = () => {
@@ -168,7 +182,7 @@ export function GeneSequence( {
         isDraggingStart,
         isDraggingEnd, 
         isDraggingRange, 
-        geneBounds ,
+        geneBounds,
         startPosition, 
         endPosition, 
         onStartPositionChange, 
@@ -255,6 +269,16 @@ export function GeneSequence( {
         return lines
     }, [sequenceData, sequenceRange, onSequenceClick])
 
+    const handleLoadSequenceClick = useCallback(async () => {
+        setIsButtonLoading(true);
+        try {
+            onSequenceLoadRequest();
+        } finally {
+            // Keep loading state for a bit to show feedback
+            setTimeout(() => setIsButtonLoading(false), 1000);
+        }
+    }, [onSequenceLoadRequest]);
+
     return  <Card className="gap-0 border-none py-0 bg-white shadow-sm">
         <CardHeader className="pt-4 pb-2">
             <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">
@@ -336,11 +360,18 @@ export function GeneSequence( {
                                     </div>
                                     <Button
                                         size="sm"
-                                        disabled={isLoading}
-                                        onClick={onSequenceLoadRequest}
+                                        disabled={isLoading || isButtonLoading}
+                                        onClick={handleLoadSequenceClick}
                                         className="h-7 w-full cursor-pointer bg-[var(--color-primary)] text-xs text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary)]/90 sm:w-auto"
                                         >
-                                            {isLoading ? "Loading..." : "Load Sequence"}
+                                            {isLoading || isButtonLoading ? (
+                                                <>
+                                                    <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                                                    Loading...
+                                                </>
+                                            ) : (
+                                                "Load Sequence"
+                                            )}
                                         </Button>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs text-[var(--color-foreground)]/70">End:</span>
@@ -372,8 +403,63 @@ export function GeneSequence( {
             </div>
 
             {error && (
-                <div className="mb-4 rounded-md bg-[var(--color-destructive)]/10 p-3 text-sm text-[var(--color-destructive)]">
-                    {error}
+                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-destructive)] bg-[var(--color-destructive)]/10 p-3 text-sm text-[var(--color-destructive)]">
+                    <span className="mt-0.5 text-lg">⚠️</span>
+                    <div>
+                        <div className="font-medium">Error loading sequence:</div>
+                        <div className="mt-1">{error}</div>
+                        {error.includes("429") || error.includes("rate limit") ? (
+                            <div className="mt-2 flex items-center gap-2">
+                                <span className="text-xs text-[var(--color-foreground)]/70">
+                                    Rate limit reached. Please wait or clear your cache.
+                                </span>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        clearRateLimitCache();
+                                        clearCache();
+                                        window.location.reload();
+                                    }}
+                                    className="h-6 text-xs"
+                                >
+                                    Clear Cache & Reload
+                                </Button>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            )}
+
+            {/* Queue Status Indicator */}
+            {isCurrentRegionQueuedOrProcessing && (
+                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)]/10 p-3 text-sm text-[var(--color-primary)]">
+                    <span className="mt-0.5 text-lg">⏳</span>
+                    <div>
+                        <div className="font-medium">NCBI Request Queue:</div>
+                        <div className="mt-1 text-xs">
+                            {ncbiQueueStatus?.isProcessing ? (
+                                <span>Processing request... ({ncbiQueueStatus?.relevantQueueLength} in queue)</span>
+                            ) : (
+                                <span>Waiting to process... ({ncbiQueueStatus?.relevantQueueLength} in queue)</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {ucscQueueStatus && ucscQueueStatus.relevantQueueLength > 0 && (
+                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)]/10 p-3 text-sm text-[var(--color-primary)]">
+                    <span className="mt-0.5 text-lg">⏳</span>
+                    <div>
+                        <div className="font-medium">UCSC Request Queue:</div>
+                        <div className="mt-1 text-xs">
+                            {ucscQueueStatus.isProcessing ? (
+                                <span>Processing request... ({ucscQueueStatus.relevantQueueLength} in queue)</span>
+                            ) : (
+                                <span>Waiting to process... ({ucscQueueStatus.relevantQueueLength} in queue)</span>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
