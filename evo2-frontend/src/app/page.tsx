@@ -2,17 +2,17 @@
 
 import { Search} from "lucide-react";
 import { useEffect, useState } from "react";
-import GeneViewer from "~/components/gene-viewer";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
+import GeneViewer from "../components/gene-viewer";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "../components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,8 +20,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+} from "../components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   type ChromosomeFromSearch,
   type GeneFromSearch,
@@ -29,7 +29,7 @@ import {
   getAvailableGenomes,
   getGenomeChromosomes,
   searchGenes,
-} from "~/utils/genome-api";
+} from "../utils/genome-api";
 
 type Mode = "browse" | "search";
 

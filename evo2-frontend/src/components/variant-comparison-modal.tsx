@@ -1,7 +1,7 @@
-import type { ClinvarVariants } from "~/utils/genome-api";
+import type { ClinvarVariants } from "../utils/genome-api";
 import { Button } from "./ui/button";
 import { Check, ExternalLink, Shield, X } from "lucide-react";
-import { getClassificationColorClasses, getNucleotideColorClass } from "~/utils/coloring-utils";
+import { getClassificationColorClasses, getNucleotideColorClass } from "../utils/coloring-utils";
 
 export function VariantComparisonModal({
     comparisonVariant,

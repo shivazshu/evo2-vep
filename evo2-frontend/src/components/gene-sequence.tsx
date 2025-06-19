@@ -1,13 +1,13 @@
 "use client "
 
-import type { GeneBounds, GeneDetailsFromSearch } from "~/utils/genome-api"
+import type { GeneBounds, GeneDetailsFromSearch } from "../utils/genome-api"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { getNucleotideColorClass } from "~/utils/coloring-utils";
-import { clearCache, clearRateLimitCache } from "~/utils/genome-api";
-import { useQueueStatus } from "~/hooks/use-queue-status";
+import { getNucleotideColorClass } from "../utils/coloring-utils";
+import { clearCache, clearRateLimitCache } from "../utils/genome-api";
+import { useQueueStatus } from "../hooks/use-queue-status";
 
 export function GeneSequence( {
     geneBounds,

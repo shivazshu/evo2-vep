@@ -7,13 +7,13 @@ import {
     type GeneBounds, 
     type GeneDetailsFromSearch, 
     type GeneFromSearch, 
-    type ClinvarVariants} from "~/utils/genome-api";
+    type ClinvarVariants} from "../utils/genome-api";
 import { Button } from "./ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GeneInformation } from "./gene-information";
 import { GeneSequence } from "./gene-sequence";
-import KnownVaraints from "./known-variants";
+import KnownVariants from "./known-variants";
 import { VariantComparisonModal } from "./variant-comparison-modal";
 import VariantAnalysis, { type VariantAnalysisHandle } from "./variant-analysis";
 
@@ -233,7 +233,7 @@ export default function GeneViewer({
             geneDetails={geneDetails}
              />
 
-            <KnownVaraints 
+            <KnownVariants 
             clinvarVariants={clinvarVariants}
             isLoadingClinvar={isLoadingClinvar}
             clinvarError={clinvarError}

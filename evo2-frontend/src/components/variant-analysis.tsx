@@ -1,14 +1,14 @@
 "use client"
 
-import { analyzeVariantWithAPI, type AnalysisResult, type ClinvarVariants, type GeneBounds, type GeneFromSearch, fetchGeneSequence, reverseComplement } from "~/utils/genome-api";
+import { analyzeVariantWithAPI, type AnalysisResult, type ClinvarVariants, type GeneBounds, type GeneFromSearch, fetchGeneSequence, reverseComplement } from "../utils/genome-api";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ChangeEvent } from "react";
-import { getClassificationColorClasses, getNucleotideColorClass } from "~/utils/coloring-utils";
+import { getClassificationColorClasses, getNucleotideColorClass } from "../utils/coloring-utils";
 import { Button } from "./ui/button";
 import { Zap } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collapsible";
-import { type GeneDetailsFromSearch } from "~/utils/genome-api";
+import { type GeneDetailsFromSearch } from "../utils/genome-api";
 
 export interface VariantAnalysisHandle {
     focusAlternativeInput: () => void; 

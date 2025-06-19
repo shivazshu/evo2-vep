@@ -1,13 +1,13 @@
 "use client"
 
-import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch, clearCache, clearRateLimitCache } from "~/utils/genome-api"
+import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch, clearCache, clearRateLimitCache } from "../utils/genome-api"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { BarChart2, ExternalLink, RefreshCw, Shield, Zap } from "lucide-react";
-import { getClassificationColorClasses } from "~/utils/coloring-utils";
+import { getClassificationColorClasses } from "../utils/coloring-utils";
 import { useState, useCallback } from "react";
-import { useQueueStatus } from "~/hooks/use-queue-status";
+import { useQueueStatus } from "../hooks/use-queue-status";
 
 export default function KnownVaraints({
     refreshVariants,

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getUserFriendlyMessage, shouldUseFallback, getFallbackData } from "~/utils/error-handling";
+import { getUserFriendlyMessage, shouldUseFallback, getFallbackData } from "../utils/error-handling";
 
 interface UseErrorHandlerOptions {
     fallbackDataKey?: keyof ReturnType<typeof getFallbackData>;

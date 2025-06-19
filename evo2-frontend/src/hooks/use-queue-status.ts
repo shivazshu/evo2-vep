@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { getNcbiQueueStatus, getUcscQueueStatus, type QueuedRequest, type NcbiQueueMeta, type UcscQueueMeta } from "~/utils/genome-api";
+import { getNcbiQueueStatus, getUcscQueueStatus, type QueuedRequest, type NcbiQueueMeta, type UcscQueueMeta } from "../utils/genome-api";
 
 interface QueueStatus {
     queueLength: number;
