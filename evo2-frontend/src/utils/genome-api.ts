@@ -89,6 +89,8 @@ interface NCBIGeneResponse {
         map_location?: string[];
         type_of_gene?: string[];
         GeneID?: string[];
+        Aliases?: string[][];
+        Description?: string[][];
     } | undefined;
     3: Array<Array<string | undefined> | undefined>;
 }
@@ -692,57 +694,83 @@ export async function searchGenes(
     }
 
     try {
-    const url = "https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search";
-    const params = new URLSearchParams({
-        terms: query,
-        df: "chromosomes,Symbol,map_location,type_of_gene",
-        ef: "chromosomes,Symbol,map_location,type_of_gene,GenomicInfo,GeneID"
-    });
+        const url = "https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search";
+        const params = new URLSearchParams({
+            terms: query,
+            df: "chromosomes,Symbol,map_location,type_of_gene,Aliases,Description",
+            ef: "chromosomes,Symbol,map_location,type_of_gene,GenomicInfo,GeneID,Aliases,Description",
+            maxList: "25"
+        });
 
         const data = await makeAPIRequest<NCBIGeneResponse>(`${url}?${params}`, 'NCBI');
 
-    const results: GeneFromSearch[] = [];
+        const results: GeneFromSearch[] = [];
 
-    if (data[0] > 0 && data[2] && data[3]) {
-        const fieldMap = data[2];
-        const geneIds: string[] = fieldMap.GeneID ?? [];
+        if (data[0] > 0 && data[2] && data[3]) {
+            const fieldMap = data[2];
+            const geneIds: string[] = fieldMap.GeneID ?? [];
+            const aliases: string[][] = fieldMap.Aliases ?? [];
+            const descriptions: string[][] = fieldMap.Description ?? [];
 
-        for (let i = 0; i < Math.min(10, data[0]) && i < data[3].length; i++) {
-            const display = data[3][i];
-            if (!display || !Array.isArray(display)) {
-                continue;
-            }
+            for (let i = 0; i < Math.min(25, data[0]) && i < data[3].length; i++) {
+                const display = data[3][i];
+                if (!display || !Array.isArray(display)) {
+                    continue;
+                }
 
-            try {
-                let chrom = typeof display[2] === 'string' ? display[2] : '';
-                const chromosomeMatch = /^\d+/.exec(chrom);
-                const chromosomeNumber = chromosomeMatch?.[0] ?? '';
-                chrom = chromosomeNumber ? `chr${chromosomeNumber}` : '';
+                try {
+                    let chrom = typeof display[2] === 'string' ? display[2] : '';
+                    
+                    // Handle chromosome format
+                    if (chrom) {
+                        // Remove any 'chr' prefix to standardize
+                        chrom = chrom.replace(/^chr/i, '');
+                        // Extract the main chromosome number/letter
+                        const match = /^([0-9XYMTxy]+)/.exec(chrom);
+                        if (match?.[1]) {
+                            chrom = `chr${match[1].toUpperCase()}`;
+                        }
+                    }
 
                     // Validate essential fields
                     const symbol = typeof display[1] === 'string' ? display[1].trim() : '';
                     const name = typeof display[3] === 'string' ? display[3].trim() : '';
                     const geneId = i < geneIds.length ? (geneIds[i] ?? '').trim() : '';
+                    
+                    // Get aliases and description if available
+                    const geneAliases = i < aliases.length ? aliases[i] ?? [] : [];
+                    const description = i < descriptions.length ? descriptions[i]?.[0] ?? '' : '';
 
                     // Skip genes with missing essential data
-                    if (!symbol || !geneId || !chrom) {
+                    if (!symbol || !geneId) {
                         continue;
                     }
 
-                const gene: GeneFromSearch = {
+                    const gene: GeneFromSearch = {
                         symbol,
-                        name: name || symbol, // Use symbol as name if name is empty
-                    chrom,
-                        description: name || symbol,
+                        name: name ?? symbol, // Use symbol as name if name is empty
+                        chrom: chrom || 'Unknown',
+                        description: description ?? name ?? symbol,
                         gene_id: geneId
-                };
-                results.push(gene);
-            } catch (error) {
+                    };
+                    results.push(gene);
+                } catch (error) {
                     // Skip this gene and continue with others
-                continue;
+                    continue;
+                }
             }
+
+            // Sort results to prioritize exact matches
+            results.sort((a, b) => {
+                const aIsExact = a.symbol.toLowerCase() === query.toLowerCase();
+                const bIsExact = b.symbol.toLowerCase() === query.toLowerCase();
+                
+                if (aIsExact && !bIsExact) return -1;
+                if (!aIsExact && bIsExact) return 1;
+                
+                return 0;
+            });
         }
-    }
 
         const result = { query, genome, results };
         setCache(cacheKey, result, CACHE_CONFIG.GENE_SEARCH_TTL);
@@ -860,13 +888,39 @@ export async function fetchGeneSequence(
     }
 
     try {
-        const chromosome = chrom && chrom !== "chr" ? (chrom.startsWith("chr") ? chrom : `chr${chrom}`) : "";
-        const chrPattern = /^chr([0-9]+|X|Y|M)$/;
+        // Normalize chromosome format for UCSC
+        let chromosome = chrom;
+        
+        // If it doesn't start with 'chr', add it
+        if (!chromosome.toLowerCase().startsWith('chr')) {
+            chromosome = `chr${chromosome}`;
+        }
+        
+        // Remove any version numbers or patches (e.g., chr1.1 -> chr1)
+        const chromParts = chromosome.split('.');
+        chromosome = chromParts[0] ?? chromosome;
+        
+        // Handle special cases and alternate names
+        const chromosomeMap: Record<string, string> = {
+            'chrMT': 'chrM',  // Mitochondrial DNA
+            'chrMt': 'chrM'
+        };
+        
+        chromosome = chromosomeMap[chromosome] ?? chromosome;
+
+        // More permissive pattern that allows for:
+        // - Standard chromosomes (1-22, X, Y, M)
+        // - Unplaced contigs (Un)
+        // - Alternative haplotypes (_alt)
+        // - Random chromosomes (_random)
+        // - Patches (_fix)
+        const chrPattern = /^chr([0-9]+|X|Y|M|Un|[0-9]+_alt|[0-9]+_random|[0-9]+_fix)$/i;
+        
         if (!chrPattern.exec(chromosome)) {
             const result = {
                 sequence: "",
                 actualRange: { start, end },
-                error: "Invalid or missing chromosome information."
+                error: `Invalid chromosome format: ${chromosome}. This might be an unrecognized chromosome or contig.`
             };
             setCache(cacheKey, result, CACHE_CONFIG.GENE_SEQUENCE_TTL);
             return result;
@@ -883,7 +937,7 @@ export async function fetchGeneSequence(
             const result = {
                 sequence: "",
                 actualRange,
-                error: data.error ?? "No DNA sequence returned"
+                error: data.error ?? "No DNA sequence returned. This might be due to invalid coordinates or unsupported chromosome in the selected genome assembly."
             };
             setCache(cacheKey, result, CACHE_CONFIG.GENE_SEQUENCE_TTL);
             return result;
@@ -895,7 +949,13 @@ export async function fetchGeneSequence(
         return result;
     } catch (error) {
         console.error("Failed to fetch DNA sequence:", error);
-        throw error;
+        const result = {
+            sequence: "",
+            actualRange: { start, end },
+            error: "Failed to fetch DNA sequence. This might be due to network issues or invalid coordinates."
+        };
+        setCache(cacheKey, result, CACHE_CONFIG.GENE_SEQUENCE_TTL);
+        return result;
     }
 }
 

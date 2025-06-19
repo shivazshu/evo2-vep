@@ -23,12 +23,13 @@ import {
 } from "../components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
-  type ChromosomeFromSearch,
-  type GeneFromSearch,
-  type GenomeAssemblyFromSearch,
   getAvailableGenomes,
   getGenomeChromosomes,
   searchGenes,
+  clearCache,
+  type GenomeAssemblyFromSearch,
+  type ChromosomeFromSearch,
+  type GeneFromSearch,
 } from "../utils/genome-api";
 
 type Mode = "browse" | "search";
@@ -44,6 +45,11 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("search");
+
+  // Clear cache on mount to ensure fresh results
+  useEffect(() => {
+    clearCache();
+  }, []);
 
   useEffect(() => {
     const fetchGenomes = async () => {
