@@ -1,7 +1,7 @@
 [build]
   base = "evo2-frontend"
   command = "npm run build"
-  publish = "evo2-frontend/out"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "18"
