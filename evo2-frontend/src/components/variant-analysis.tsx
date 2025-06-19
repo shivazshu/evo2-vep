@@ -23,9 +23,8 @@ interface VariantAnalysisProps {
     sequencePosition: number | null;  
     geneBounds: GeneBounds | null;
     geneDetails: GeneDetailsFromSearch | null;
-} 
+}
 
-// eslint-disable-next-line react/display-name
 const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(({
     gene,
     genomeId,
@@ -59,16 +58,15 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                 alternativeInputRef.current.focus();
             }
         }
-    }))
+    }));
 
     useEffect(() => {
         if (sequencePosition && referenceSequence) {
             setVariantPosition(String(sequencePosition));
             setVariantReference(referenceSequence);
         }
-    }, [sequencePosition, referenceSequence])
+    }, [sequencePosition, referenceSequence]);
      
-    
     const handlePositionChange = (e: ChangeEvent<HTMLInputElement>) => {
         const newPosition = e.target.value.trim().replace(/\s+/g, '');
         setVariantPosition(newPosition);
@@ -76,7 +74,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         setVariantResult(null);
         setSequenceAssertion(null);
         setShowAssertion(false);
-    }
+    };
 
     const handleVariantSubmit = async (pos: string, alt: string, ref?: string) => {
         const position = parseInt(pos.replaceAll(",", ""));
@@ -106,41 +104,6 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             if (refAltMatch?.[1] && refAltMatch?.[2]) {
                 referenceNucleotide = refAltMatch[1];
                 alternativeNucleotide = refAltMatch[2];
-                if (!sequenceAssertion || sequenceAssertion.clinvarReference !== referenceNucleotide || sequenceAssertion.fetchedNucleotide === undefined) {
-                    setSequenceAssertion(null);
-                    void fetchGeneSequence(
-                        chromosome,
-                        position,
-                        position,
-                        genomeId
-                    ).then(({ sequence, error }) => {
-                        if (error) {
-                            setSequenceAssertion({
-                                fetchedNucleotide: "",
-                                clinvarReference: referenceNucleotide ?? "",
-                                match: false,
-                                error: error,
-                                position: position
-                            });
-                        } else {
-                            setSequenceAssertion({
-                                fetchedNucleotide: sequence,
-                                clinvarReference: referenceNucleotide ?? "",
-                                match: sequence === referenceNucleotide,
-                                position: position
-                            });
-                        }
-                    }).catch(err => {
-                        console.error("Error fetching sequence:", err);
-                        setSequenceAssertion({
-                            fetchedNucleotide: "",
-                            clinvarReference: referenceNucleotide ?? "",
-                            match: false,
-                            error: err instanceof Error ? err.message : "Unknown error",
-                            position: position
-                        });
-                    });
-                }
             }
         }
 
@@ -149,13 +112,8 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             return;
         }
 
-        // Determine if the gene is on the negative strand
-        const isNegativeStrand = geneDetails?.genomicinfo?.[0]?.strand === '-';
-        let altForAnalysis = alternativeNucleotide;
-        if (isNegativeStrand) {
-            altForAnalysis = reverseComplement(alternativeNucleotide);
-        }
-
+        // Note: We do not complement the nucleotide even on negative strand
+        // because variant notation is always relative to the positive strand
         setIsAnalyzing(true);
         setVariantError(null);
         setVariantResult(null);
@@ -163,10 +121,10 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         try {
             const data = await analyzeVariantWithAPI({
                 position,
-                alternative: altForAnalysis,
+                alternative: alternativeNucleotide,
                 genomeId,
                 chromosome,
-            })
+            });
 
             setVariantResult(data);
         } catch(err) {
@@ -175,7 +133,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         } finally {
             setIsAnalyzing(false);
         }
-    }
+    };
 
     useEffect(() => {
         // Only run if a known variant is detected
@@ -209,10 +167,8 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         }
 
         // Only fetch if not already fetched for this reference and position
-        if (sequenceAssertion && 
-            sequenceAssertion.clinvarReference === clinvarReference && 
-            sequenceAssertion.fetchedNucleotide !== undefined && 
-            sequenceAssertion.position === actualPosition) {
+        if (sequenceAssertion?.clinvarReference === clinvarReference && 
+            sequenceAssertion?.position === actualPosition) {
             return;
         }
 
@@ -231,13 +187,13 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             expectedGenome
         ).then(({ sequence, error }) => {
             if (error) {
-                setSequenceAssertion({
+                setSequenceAssertion(prev => ({
                     fetchedNucleotide: "",
                     clinvarReference: clinvarReference,
                     match: false,
                     error: error,
                     position: actualPosition
-                });
+                }));
             } else {
                 const reverseComplement = (seq: string) => {
                     const complement: Record<string, string> = {
@@ -255,25 +211,25 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                 const finalSequence = isNegativeStrand ? reverseComplement(sequence) : sequence;
                 const finalClinvarReference = clinvarReference;
                 const isIntronicRecombination = gene?.name?.toLowerCase().includes('biological-region');
-                setSequenceAssertion({
+                setSequenceAssertion(prev => ({
                     fetchedNucleotide: finalSequence,
                     clinvarReference: finalClinvarReference,
                     match: finalSequence === finalClinvarReference,
                     position: actualPosition,
                     isNegativeStrand
-                });
+                }));
             }
         }).catch(err => {
             console.error("Error fetching sequence:", err);
-            setSequenceAssertion({
+            setSequenceAssertion(prev => ({
                 fetchedNucleotide: "",
                 clinvarReference: clinvarReference,
                 match: false,
                 error: err instanceof Error ? err.message : "Unknown error",
                 position: actualPosition
-            });
+            }));
         });
-    }, [clinvarVariants, variantPosition, genomeId, chromosome, sequenceAssertion, geneDetails, gene]);
+    }, [clinvarVariants, variantPosition, genomeId, chromosome, geneDetails, gene, sequenceAssertion?.clinvarReference, sequenceAssertion?.position]);
 
     return (
         <Card className="gap-0 border-none bg-white py-0 shadow-sm">
@@ -281,58 +237,59 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                 <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">Variant Analysis</CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
-            <p className="mb-4 text-xs text-[var(--color-foreground)]/80">
-                Predict the functional impact or pathogenicity of a single nucleotide variant (SNV) using
-                <a
-                href="https://github.com/ArcInstitute/evo2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--color-link)] underline cursor-pointer ml-1"
-                aria-label="Learn more about Evo2 deep learning model (opens in new tab)"
-                >
-                Evo2<span className="ml-0.5 align-baseline" style={{ fontSize: "0.85em" }}>↗</span>
-                </a>
-                , <span className="italic">deep learning model</span>.
+                <p className="mb-4 text-xs text-[var(--color-foreground)]/80">
+                    Predict the functional impact or pathogenicity of a single nucleotide variant (SNV) using
+                    <a
+                        href="https://github.com/ArcInstitute/evo2"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--color-link)] underline cursor-pointer ml-1"
+                        aria-label="Learn more about Evo2 deep learning model (opens in new tab)"
+                    >
+                        Evo2<span className="ml-0.5 align-baseline" style={{ fontSize: "0.85em" }}>↗</span>
+                    </a>
+                    , <span className="italic">deep learning model</span>.
                 </p>
-                <div className="flex flex-wrap items-end gap-4">
+
+                <div className="flex items-end gap-4">
                     <div>
-                        <label className="mb-1 block text-xs text-[var(--color-foreground)]">
-                            Position
-                        </label>
-                        <Input 
-                        value={variantPosition}
-                        onChange={handlePositionChange} 
-                        className="h-8 w-32 border-[var(--color-border)] text-xs"/>
+                        <div className="mb-2 text-xs font-medium text-[var(--color-foreground)]">Position</div>
+                        <Input
+                            type="text"
+                            value={variantPosition}
+                            onChange={handlePositionChange}
+                            className="h-8 w-32 text-xs"
+                            placeholder="Enter position"
+                        />
                     </div>
                     <div>
-                        <label className="mb-1 block text-xs text-[var(--color-foreground)]">
-                            Alternative (variant)
-                        </label>
-                        <Input 
-                        ref={alternativeInputRef}
-                        value={variantAlternative}
-                        onChange={(e) => setVariantAlternative(e.target.value.toUpperCase())} 
-                        className="h-8 w-32 border-[var(--color-border)] text-xs"
-                        placeholder="e.g., T"
-                        maxLength={1}
+                        <div className="mb-2 text-xs font-medium text-[var(--color-foreground)]">Alternative (variant)</div>
+                        <Input
+                            ref={alternativeInputRef}
+                            type="text"
+                            value={variantAlternative}
+                            onChange={(e) => setVariantAlternative(e.target.value.toUpperCase())}
+                            className="h-8 w-32 text-xs"
+                            placeholder="e.g., A, T, G, C"
+                            maxLength={1}
                         />
                     </div>
                     {variantReference && (
-                        <div className="mb-2 flex items-center gap-2 text-xs text-[var(--color-foreground)]">
+                        <div className="flex items-center gap-2 text-xs text-[var(--color-foreground)]/70">
                             <span>Substitution:</span>
-                            <span className={`font-medium ${getNucleotideColorClass(variantReference)}`}>
+                            <span className={`font-mono ${getNucleotideColorClass(variantReference)}`}>
                                 {variantReference}
                             </span>
                             <span>→</span>
-                            <span className={`font-medium ${getNucleotideColorClass(variantAlternative)}`}>
-                                {variantAlternative ? variantAlternative : "?"}
+                            <span className={`font-mono ${getNucleotideColorClass(variantAlternative)}`}>
+                                {variantAlternative}
                             </span>
                         </div>
                     )}
                     <Button
-                    disabled={isAnalyzing || !variantPosition || !variantAlternative}
-                    className="h-8 cursor-pointer bg-primary text-primary-foreground text-xs hover:bg-primary/80"
-                    onClick={() => handleVariantSubmit(variantPosition.replace(",", ""), variantAlternative)}
+                        disabled={isAnalyzing || !variantPosition || !variantAlternative}
+                        className="h-8 cursor-pointer bg-primary text-primary-foreground text-xs hover:bg-primary/80"
+                        onClick={() => handleVariantSubmit(variantPosition.replace(",", ""), variantAlternative)}
                     >
                         {isAnalyzing ? (
                             <><span className="h-3 w-3 mr-2  inline-block animate-spin rounded-full border-2 border-white border-t-transparent align-middle"></span>Analyzing...</>
@@ -341,6 +298,12 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                         )}
                     </Button>
                 </div>
+
+                {variantError && (
+                    <div className="mt-4 rounded-md bg-[var(--color-destructive)]/10 text-xs text-[var(--color-destructive)] p-3">
+                        {variantError}
+                    </div>
+                )}
 
                 {clinvarVariants.filter(
                     (variant) => variant?.variation_type?.toLowerCase().includes("single nucleotide variant") && 
@@ -364,7 +327,9 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                         >
                             <div className="mb-3 flex items-center justify-between">
                                 <h4 className="text-sm font-medium text-[var(--color-foreground)]">Known Variant Detected</h4>
-                                <span className="text-xs text-[var(--color-foreground)]/80">Position: {matchedVariant.location}</span>
+                                <div className="text-xs text-[var(--color-foreground)]/80">
+                                    Position: {matchedVariant.location}
+                                </div>
                             </div>
                             <div className="grid gap-2 md:grid-cols-2 ">
                                 <div>
@@ -488,22 +453,16 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                     )
                 })[0]}
 
-                {variantError && (
-                    <div className="mt-4 rounded-md bg-[var(--color-destructive)]/10 text-xs text-[var(--color-destructive)] p-3">
-                        {variantError}
-                    </div>
-                )}
-
                 {!isAnalyzing && variantResult && (
-                    <div className="mt-4 rounded-md border border-border bg-card/30 p-4">
+                    <div className="mt-4 rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 p-4">
                         <h4 className="mb-3 text-sm font-medium text-[var(--color-foreground)]">Analysis Results</h4>
-                        <div className="grid md:grid-cols-2 ">
+                        <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                                <div className="mb-2 ">
+                                <div className="mb-2">
                                     <div className="text-xs font-medium text-[var(--color-foreground)]/70">Variant</div>
                                     <div className="text-sm">
                                         {gene?.symbol} {variantResult.position.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                                         <span className="font-mono">
+                                        <span className="font-mono">
                                             <span className={`${getNucleotideColorClass(variantResult.reference)}`}>
                                                 {variantResult.reference}
                                             </span>
@@ -511,11 +470,11 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                             <span className={`${getNucleotideColorClass(variantResult.alternative)}`}>
                                                 {variantResult.alternative}
                                             </span>
-                                         </span>
-                                        </div>
+                                        </span>
+                                    </div>
                                 </div>
                                 <div>
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]">Delta Likelihood Score</div>
+                                    <div className="text-xs font-medium text-[var(--color-foreground)]/70">Delta Likelihood Score</div>
                                     <div className="font-sm">
                                         {variantResult?.delta_score.toFixed(6)}
                                     </div>
@@ -527,23 +486,20 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                             </div>
                             <div>
                                 <div className="mb-2">
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]">Pathogenicity Prediction</div>
+                                    <div className="text-xs font-medium text-[var(--color-foreground)]/70">Pathogenicity Prediction</div>
                                     <div 
-                                    className={`inline-block rounded-lg mt-1.5 mb-3 px-3 py-2 text-xs ${getClassificationColorClasses(variantResult.prediction)}`}
+                                        className={`inline-block rounded-lg mt-1.5 mb-3 px-3 py-2 text-xs ${getClassificationColorClasses(variantResult.prediction)}`}
                                     >{variantResult.prediction}</div>
                                     <div className="text-xs font-medium text-[var(--color-foreground)]">Confidence</div>
                                     <div className="mt-1 h-2 w-full rounded-full bg-muted">
                                         <div  
-                                        className={`h-2 rounded-full ${variantResult.prediction.includes("pathogenic") ? "bg-[var(--color-pathogenic)]" : "bg-[var(--color-benign)]"}`}
-                                        style={{width: `${Math.min(100, variantResult.classification_confidence * 100)}%`}}
-                                        >
+                                            className={`h-2 rounded-full ${variantResult.prediction.includes("pathogenic") ? "bg-[var(--color-pathogenic)]" : "bg-[var(--color-benign)]"}`}
+                                        style={{width: `${Math.min(100, variantResult.classification_confidence * 100)}%`
+                                        }}>
                                         </div>
                                     </div>
                                     <div className="mt-1 mb-2 text-right text-xs text-[var(--color-foreground)]/60">
-                                        {Math.round(
-                                                variantResult
-                                                .classification_confidence * 100,
-                                            )}%
+                                        {Math.round(variantResult.classification_confidence * 100)}%
                                     </div>
                                 </div>
                             </div>
@@ -553,9 +509,8 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             </CardContent>
         </Card>
     );
-}
-)
+});
 
+VariantAnalysis.displayName = "VariantAnalysis";
 
-
-export default VariantAnalysis; 
+export default VariantAnalysis;
