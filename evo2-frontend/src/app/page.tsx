@@ -52,9 +52,12 @@ export default function HomePage() {
         const data = await getAvailableGenomes();
         if (data.genomes?.Human) {
           setGenomes(data.genomes.Human);
+        } else {
+          setGenomes([]);
         }
       } catch (err) {
         setError("Failed to load genome data");
+        setGenomes([]);
       } finally {
         setIsLoading(false);
       }
@@ -67,12 +70,17 @@ export default function HomePage() {
       try {
         setIsLoading(true);
         const data = await getGenomeChromosomes(selectedGenome);
-        setChromosomes(data.chromosomes);
-        if (data.chromosomes.length > 0) {
-          setSelectedChromosome(data.chromosomes[0]!.name);
+        if (data.chromosomes) {
+          setChromosomes(data.chromosomes);
+          if (data.chromosomes.length > 0) {
+            setSelectedChromosome(data.chromosomes[0]!.name);
+          }
+        } else {
+          setChromosomes([]);
         }
       } catch (err) {
         setError("Failed to load chromosome data");
+        setChromosomes([]);
       } finally {
         setIsLoading(false);
       }
@@ -205,7 +213,7 @@ export default function HomePage() {
                     <SelectValue placeholder="Select genome assembly" />
                   </SelectTrigger>
                   <SelectContent>
-                    {genomes.map((genome) => (
+                    {(genomes || []).map((genome) => (
                       <SelectItem key={genome.id} value={genome.id}>
                         {genome.id} - {genome.name}
                         {genome.active ? " (active)" : ""}
@@ -288,7 +296,7 @@ export default function HomePage() {
                   <TabsContent value="browse" className="mt-0">
                     <div className="max-h-[150px] overflow-y-auto pr-1">
                       <div className="flex flex-wrap gap-2">
-                        {chromosomes.map((chrom) => (
+                        {(chromosomes || []).map((chrom) => (
                           <Button
                             key={chrom.name}
                             variant="outline"
@@ -354,7 +362,7 @@ export default function HomePage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {searchResults.map((gene, index) => (
+                          {(searchResults || []).map((gene, index) => (
                             <TableRow
                               key={`${gene.symbol}-${index}`}
                               className="cursor-pointer border-b border-[#3c4f3d]/5 hover:bg-[#e9eeea]/50"
