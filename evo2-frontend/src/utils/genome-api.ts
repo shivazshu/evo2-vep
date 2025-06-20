@@ -177,10 +177,8 @@ const CACHE_CONFIG = {
 } as const;
 
 const RATE_LIMIT_CONFIG = {
-    NCBI_REQUESTS_PER_SECOND: 1, // Only 1 request per 4 seconds
-    UCSC_REQUESTS_PER_SECOND: 2, // 2 requests per 4 seconds
     RETRY_ATTEMPTS: 3,
-    BASE_DELAY: 4000, // 4 seconds
+    BASE_DELAY: 1500, // 1.5 seconds
 } as const;
 
 // Memory cache for faster access
@@ -463,121 +461,60 @@ async function retryWithBackoff<T>(
 
 async function makeAPIRequest<T>(
     url: string,
-    apiType: 'NCBI' | 'UCSC',
-    options?: RequestInit,
-    meta?: NcbiQueueMeta | UcscQueueMeta
+    service: 'NCBI' | 'UCSC',
+    options: RequestInit = {}
 ): Promise<T> {
-    if (apiType === 'NCBI') {
-        return queueNcbiRequest(async () => {
-            // Use proxy routes for external APIs to handle CORS
-            const urlObj = new URL(url);
-            let endpoint: string;
-            
-            // Handle different NCBI URL patterns
-            if (url.includes('clinicaltables.nlm.nih.gov')) {
-                // For clinicaltables URLs, extract the path after the domain
-                endpoint = urlObj.pathname.replace('/api/', '') + urlObj.search;
-            } else if (url.includes('eutils.ncbi.nlm.nih.gov')) {
-                // For eutils URLs, extract the path after /entrez/
-                endpoint = urlObj.pathname.replace('/entrez/', '') + urlObj.search;
-            } else {
-                // Fallback: use the full path
-                endpoint = urlObj.pathname.replace('/api/', '') + urlObj.search;
-            }
-            
-            const proxyUrl = `/api/proxy/ncbi?endpoint=${encodeURIComponent(endpoint)}`;
+    const proxyUrl = service === 'NCBI' ? '/api/proxy/ncbi' : '/api/proxy/ucsc';
+    const fullProxyUrl = `${proxyUrl}?endpoint=${encodeURIComponent(url)}`;
+    let lastError: Error | null = null;
 
-            try {
-                const response = await fetch(proxyUrl, {
-                    ...options,
-                    headers: {
-                        'User-Agent': 'Evo2-Variant-Analysis/1.0',
-                        ...options?.headers,
-                    },
-                });
+    for (let i = 0; i < RATE_LIMIT_CONFIG.RETRY_ATTEMPTS; i++) {
+        try {
+            const response = await fetch(fullProxyUrl, {
+                ...options,
+                headers: {
+                    ...options.headers,
+                    'Content-Type': 'application/json',
+                },
+            });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new APIError(
-                        `${apiType} API Error: ${response.status} ${response.statusText} - ${errorText}`,
-                        response.status,
-                        apiType,
-                        response.status >= 500 || response.status === 429
-                    );
-                }
+            if (!response.ok) {
+                const errorText = await response.text();
+                const status = response.status;
 
-                return response.json() as T;
-            } catch (error) {
-                if (error instanceof APIError) {
-                    throw error;
+                // For 429 (rate limit) or 5xx server errors, we should retry
+                if (status === 429 || status >= 500) {
+                    throw new APIError(`${service} API returned status ${status}`, status, service, true);
                 }
                 
-                // Handle network errors
-                if (error instanceof TypeError && error.message.includes('fetch')) {
-                    throw new NetworkError(apiType);
-                }
-                
-                throw new APIError(
-                    `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    0,
-                    apiType,
-                    true
-                );
+                // For other errors (e.g., 400), don't retry
+                throw new APIError(`${service} API Error: ${status} - ${errorText}`, status, service, false);
             }
-        }, meta as NcbiQueueMeta);
-    }
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType?.includes('application/json')) {
+                return await response.json() as T;
+            }
+            
+            // Handle non-JSON responses (like for GenBank text)
+            return await response.text() as unknown as T;
 
-    if (apiType === 'UCSC') {
-        return queueUcscRequest(async () => {
-            // Use proxy routes for external APIs to handle CORS
-            const urlObj = new URL(url);
-            let endpoint: string;
-            if (url.includes('api.genome.ucsc.edu')) {
-                endpoint = urlObj.pathname.replace('/api/genome.ucsc.edu/', '') + urlObj.search;
-                if (endpoint.startsWith('/')) {
-                    endpoint = endpoint.substring(1);
-                }
-            } else {
-                endpoint = urlObj.pathname.replace('/api/', '') + urlObj.search;
-            }
-            const proxyUrl = `/api/proxy/ucsc?endpoint=${encodeURIComponent(endpoint)}`;
-            try {
-                const response = await fetch(proxyUrl, {
-                    ...options,
-                    headers: {
-                        'User-Agent': 'Evo2-Variant-Analysis/1.0',
-                        ...options?.headers,
-                    },
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new APIError(
-                        `${apiType} API Error: ${response.status} ${response.statusText} - ${errorText}`,
-                        response.status,
-                        apiType,
-                        response.status >= 500 || response.status === 429
-                    );
-                }
-                return response.json() as T;
-            } catch (error) {
-                if (error instanceof APIError) {
-                    throw error;
-                }
-                if (error instanceof TypeError && error.message.includes('fetch')) {
-                    throw new NetworkError(apiType);
-                }
-                throw new APIError(
-                    `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    0,
-                    apiType,
-                    true
-                );
-            }
-        }, meta as UcscQueueMeta);
-    }
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
 
-    // ... fallback (should not be reached) ...
-    throw new Error('Invalid API type for makeAPIRequest');
+            // If the error is not retryable, break the loop
+            if (error instanceof APIError && !error.retryable) {
+                break;
+            }
+            
+            // Exponential backoff with jitter
+            const delay = RATE_LIMIT_CONFIG.BASE_DELAY * Math.pow(2, i) + Math.random() * 1000;
+            console.warn(`Attempt ${i + 1} for ${url} failed. Retrying in ${delay.toFixed(0)}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    
+    throw new Error(`Failed to fetch from ${service} after ${RATE_LIMIT_CONFIG.RETRY_ATTEMPTS} attempts: ${lastError?.message ?? 'Unknown error'}`);
 }
 
 // Enhanced API Functions with Caching, Error Handling, and Fallbacks
@@ -988,9 +925,7 @@ export async function fetchClinvarVariants(
 
         const searchData = await makeAPIRequest<ClinvarSearchResponse>(
             `${searchURL}?${searchParams.toString()}`,
-            'NCBI',
-            undefined,
-            { chrom: chromFormatted, genomeId }
+            'NCBI'
         );
 
     if (!searchData.esearchresult?.idlist || searchData.esearchresult.idlist.length === 0) {
@@ -1009,9 +944,7 @@ export async function fetchClinvarVariants(
 
         const summaryData = await makeAPIRequest<ClinvarSummaryResponse>(
             `${summaryURL}?${summaryParams.toString()}`,
-            'NCBI',
-            undefined,
-            { chrom: chromFormatted, genomeId }
+            'NCBI'
         );
 
     const variants: ClinvarVariants[] = [];
