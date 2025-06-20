@@ -3,7 +3,6 @@
 import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch, clearCache, clearRateLimitCache } from "../utils/genome-api"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { BarChart2, ExternalLink, RefreshCw, Shield, Zap } from "lucide-react";
 import { getClassificationColorClasses } from "../utils/coloring-utils";
 import { useState, useCallback } from "react";
@@ -185,7 +184,7 @@ export default function KnownVaraints({
                         <div className="w-full">
                             {/* Fixed Header */}
                             <div className="bg-[var(--color-muted)] border-b border-[var(--color-border)]">
-                                <div className="grid grid-cols-[40%_20%_20%_20%] px-4 py-2">
+                                <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr] gap-x-4 px-4 py-2">
                                     <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Variant</div>
                                     <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Type</div>
                                     <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Clinical Significance</div>
@@ -199,7 +198,7 @@ export default function KnownVaraints({
                                     {clinvarVariants.map((variant) => (
                                         <div
                                             key={variant.clinvar_id}
-                                            className="grid grid-cols-[40%_20%_20%_20%] px-4 py-2 border-b border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]/50"
+                                            className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr] items-center gap-x-4 px-4 py-2 border-b border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]/50"
                                         >
                                             <div className="py-2 h-full flex flex-col justify-center">
                                                 <div className="text-xs font-medium text-[var(--color-foreground)] break-words">
@@ -230,20 +229,20 @@ export default function KnownVaraints({
                                                     {variant.variation_type}
                                                 </div>
                                             </div>
-                                            <div className="py-2 text-xs flex flex-col items-start h-full justify-center">
-                                                <div
-                                                    className={`rounded-md px-2 py-1 text-center font-normal ${getClassificationColorClasses(variant.classification)}`}
+                                            <div className="py-2 text-xs">
+                                                <span
+                                                    className={`inline-block rounded-md px-2 py-1 font-normal ${getClassificationColorClasses(variant.classification)}`}
                                                 >
                                                     {variant.classification || "Unknown"}
-                                                </div>
+                                                </span>
                                                 {variant.evo2Result && (
-                                                    <div className="mt-2 flex justify-start">
-                                                        <div
-                                                            className={`flex items-center gap-1 rounded-md px-2 py-1 text-center ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
+                                                    <div className="mt-2">
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 rounded-md px-2 py-1 ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
                                                         >
                                                             <Shield className="h-3 w-3" />
                                                             <span>Evo2: {variant.evo2Result.prediction}</span>
-                                                        </div>
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>

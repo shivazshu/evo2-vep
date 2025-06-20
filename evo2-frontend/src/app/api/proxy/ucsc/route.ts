@@ -72,14 +72,12 @@ export async function GET(request: NextRequest) {
         }
         
         // If all retries fail
-        console.error('UCSC proxy error after retries:', lastError);
         return NextResponse.json(
             { error: 'Internal server error after multiple retries', details: lastError instanceof Error ? lastError.message : String(lastError) },
             { status: 500 }
         );
 
-    } catch (error) {
-        console.error('Proxy error:', error);
+    } catch {
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
