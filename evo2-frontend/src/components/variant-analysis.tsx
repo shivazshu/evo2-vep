@@ -6,7 +6,7 @@ import { Input } from "./ui/input";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ChangeEvent } from "react";
 import { getClassificationColorClasses, getNucleotideColorClass } from "../utils/coloring-utils";
 import { Button } from "./ui/button";
-import { Zap } from "lucide-react";
+import { Zap, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collapsible";
 import { type GeneDetailsFromSearch } from "../utils/genome-api";
 
@@ -38,7 +38,8 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
     const [variantPosition, setVariantPosition] = useState<string>(geneBounds?.min?.toString() ?? "" );
     const [variantReference, setVariantReference] = useState("");
     const [variantAlternative, setVariantAlternative] = useState("");
-    const [variantResult, setVariantResult] = useState<AnalysisResult | null>(null);
+    const [analysisHistory, setAnalysisHistory] = useState<AnalysisResult[]>([]);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [variantError, setVariantError] = useState<string | null>(null);
     const alternativeInputRef = useRef<HTMLInputElement>(null);
@@ -71,9 +72,15 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         const newPosition = e.target.value.trim().replace(/\s+/g, '');
         setVariantPosition(newPosition);
         setVariantReference("");
-        setVariantResult(null);
+        setVariantError(null);
         setSequenceAssertion(null);
         setShowAssertion(false);
+        setIsHistoryOpen(false);
+    };
+
+    const handleAlternativeChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setVariantAlternative(e.target.value.toUpperCase());
+        setVariantError(null);
     };
 
     const handleVariantSubmit = async (pos: string, alt: string, ref?: string) => {
@@ -82,6 +89,15 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         if (isNaN(position)) {
             setVariantError("Please enter a valid position number.");
             return;
+        }
+
+        if (geneBounds) {
+            if (position < geneBounds.min || position > geneBounds.max) {
+                setVariantError(
+                    `Position is outside the bounds of the gene (${geneBounds.min.toLocaleString()} - ${geneBounds.max.toLocaleString()}).`
+                );
+                return;
+            }
         }
 
         const validNucleotide = /^[ATGC]$/;
@@ -116,7 +132,6 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
         // because variant notation is always relative to the positive strand
         setIsAnalyzing(true);
         setVariantError(null);
-        setVariantResult(null);
 
         try {
             const data = await analyzeVariantWithAPI({
@@ -126,7 +141,8 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                 chromosome,
             });
 
-            setVariantResult(data);
+            setAnalysisHistory(prev => [data, ...prev].slice(0, 3));
+            setIsHistoryOpen(true);
         } catch(err) {
             console.error(err);
             setVariantError("Failed to analyze entered variant.")
@@ -250,44 +266,56 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                     , <span className="italic">deep learning model</span>.
                 </p>
 
-                <div className="flex items-end gap-4">
-                    <div>
-                        <div className="mb-2 text-xs font-medium text-[var(--color-foreground)]">Position</div>
+                <div className="flex flex-col sm:flex-row sm:items-end sm:gap-2">
+                    <div className="flex-1 space-y-1 sm:flex-grow-0 sm:basis-48">
+                        <label className="mb-2 text-xs font-medium text-[var(--color-foreground)]">Position</label>
                         <Input
                             type="text"
                             value={variantPosition}
                             onChange={handlePositionChange}
-                            className="h-8 w-32 text-xs"
+                            className="h-9 w-full"
                             placeholder="Enter position"
                         />
                     </div>
-                    <div>
-                        <div className="mb-2 text-xs font-medium text-[var(--color-foreground)]">Alternative (variant)</div>
+                    <div className="mt-4 flex-1 sm:mt-0 sm:flex-grow-0 sm:basis-48">
+                        <label className="mb-2 block text-xs font-medium text-[var(--color-foreground)]">Alternative (variant)</label>
                         <Input
                             ref={alternativeInputRef}
                             type="text"
                             value={variantAlternative}
-                            onChange={(e) => setVariantAlternative(e.target.value.toUpperCase())}
-                            className="h-8 w-32 text-xs"
+                            onChange={handleAlternativeChange}
+                            className="h-9 w-full"
                             placeholder="e.g., A, T, G, C"
                             maxLength={1}
                         />
+                        {variantReference && (
+                            <div className="sm:hidden mt-3 flex items-center gap-2 text-xs text-[var(--color-foreground)]/70">
+                                <span>Substitution:</span>
+                                <span className={`font-mono ${getNucleotideColorClass(variantReference)}`}>
+                                    {variantReference}
+                                </span>
+                                <span>→</span>
+                                <span className={`font-mono ${getNucleotideColorClass(variantAlternative)}`}>
+                                    {variantAlternative ? variantAlternative : "?"}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     {variantReference && (
-                        <div className="flex items-center gap-2 text-xs text-[var(--color-foreground)]/70">
+                        <div className="hidden sm:flex h-9 items-center gap-2 ml-2 mr-2 text-xs text-[var(--color-foreground)]/70">
                             <span>Substitution:</span>
                             <span className={`font-mono ${getNucleotideColorClass(variantReference)}`}>
                                 {variantReference}
                             </span>
                             <span>→</span>
                             <span className={`font-mono ${getNucleotideColorClass(variantAlternative)}`}>
-                                {variantAlternative}
+                                {variantAlternative ? variantAlternative : "?"}
                             </span>
                         </div>
                     )}
                     <Button
                         disabled={isAnalyzing || !variantPosition || !variantAlternative}
-                        className="h-8 cursor-pointer bg-primary text-primary-foreground text-xs hover:bg-primary/80"
+                        className="mt-4 h-9 cursor-pointer sm:mt-0 sm:self-end bg-[var(--color-foreground)] text-[var(--color-card)] hover:bg-[var(--color-foreground)]/90 text-xs"
                         onClick={() => handleVariantSubmit(variantPosition.replace(",", ""), variantAlternative)}
                     >
                         {isAnalyzing ? (
@@ -385,7 +413,11 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                             {sequenceAssertion && (
                             <Collapsible open={showAssertion} onOpenChange={setShowAssertion}>
                                 <CollapsibleTrigger asChild>
-                                    <button type="button" className="mt-4 text-xs underline text-[var(--color-link)] cursor-pointer">
+                                    <button 
+                                        type="button" 
+                                        className="mt-4 text-xs underline text-[var(--color-link)] cursor-pointer"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         {showAssertion ? "Hide" : "Show"} Reference Nucleotide Assertion
                                     </button>
                                 </CollapsibleTrigger>
@@ -457,58 +489,85 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                     )
                 })[0]}
 
-                {!isAnalyzing && variantResult && (
-                    <div className="mt-4 rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 p-4">
-                        <h4 className="mb-3 text-sm font-medium text-[var(--color-foreground)]">Analysis Results</h4>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <div className="mb-2">
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]/70">Variant</div>
-                                    <div className="text-sm">
-                                        {gene?.symbol} {variantResult.position.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                                        <span className="font-mono">
-                                            <span className={`${getNucleotideColorClass(variantResult.reference)}`}>
-                                                {variantResult.reference}
-                                            </span>
-                                            {">"}
-                                            <span className={`${getNucleotideColorClass(variantResult.alternative)}`}>
-                                                {variantResult.alternative}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]/70">Delta Likelihood Score</div>
-                                    <div className="font-sm">
-                                        {variantResult?.delta_score.toFixed(6)}
-                                    </div>
-                                    <div className="text-xs text-[var(--color-foreground)]/60">
-                                        {variantResult?.delta_score < 0 ? "Negative score indicates loss of function." : "Positive score indicates gain/neutral function."}
-                                        
-                                    </div>
-                                </div>
+                {analysisHistory.length > 0 && (
+                    <Collapsible
+                        open={isHistoryOpen}
+                        onOpenChange={setIsHistoryOpen}
+                        className="mt-4 rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/20"
+                    >
+                        <CollapsibleTrigger asChild>
+                            <div className="flex cursor-pointer items-center justify-between p-3">
+                                <h4 className="text-sm font-medium text-[var(--color-foreground)]">
+                                    {isHistoryOpen ? "Hide" : "Show"} Analysis History ({analysisHistory.length} most recent)
+                                </h4>
+                                <ChevronDown
+                                    className={`h-4 w-4 transition-transform duration-200 ${
+                                        isHistoryOpen ? 'rotate-180' : ''
+                                    }`}
+                                />
                             </div>
-                            <div>
-                                <div className="mb-2">
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]/70">Pathogenicity Prediction</div>
-                                    <div 
-                                        className={`inline-block rounded-lg mt-1.5 mb-3 px-3 py-2 text-xs ${getClassificationColorClasses(variantResult.prediction)}`}
-                                    >{variantResult.prediction}</div>
-                                    <div className="text-xs font-medium text-[var(--color-foreground)]">Confidence</div>
-                                    <div className="mt-1 h-2 w-full rounded-full bg-muted">
-                                        <div  
-                                            className={`h-2 rounded-full ${variantResult.prediction.includes("pathogenic") ? "bg-[var(--color-pathogenic)]" : "bg-[var(--color-benign)]"}`}
-                                        style={{width: `${Math.min(100, variantResult.classification_confidence * 100)}%`
-                                        }}>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            {analysisHistory.map((result, index) => (
+                                <div
+                                    key={`${result.position}-${index}`}
+                                    className={`border-t border-[var(--color-border)] p-4 ${
+                                        index === 0
+                                            ? 'border-l-4 border-l-[var(--color-brand-primary)]'
+                                            : 'border-l-4 border-l-transparent'
+                                    }`}
+                                >
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <div className="mb-2">
+                                                <div className="text-xs font-medium text-[var(--color-foreground)]/70">Variant</div>
+                                                <div className="text-sm">
+                                                    {gene?.symbol} {result.position.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                                                    <span className="font-mono">
+                                                        <span className={`${getNucleotideColorClass(result.reference)}`}>
+                                                            {result.reference}
+                                                        </span>
+                                                        {">"}
+                                                        <span className={`${getNucleotideColorClass(result.alternative)}`}>
+                                                            {result.alternative}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-medium text-[var(--color-foreground)]/70">Delta Likelihood Score</div>
+                                                <div className="font-sm">
+                                                    {result?.delta_score.toFixed(6)}
+                                                </div>
+                                                <div className="text-xs text-[var(--color-foreground)]/60">
+                                                    {result?.delta_score < 0 ? "Negative score indicates loss of function." : "Positive score indicates gain/neutral function."}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="mb-2">
+                                                <div className="text-xs font-medium text-[var(--color-foreground)]/70">Pathogenicity Prediction</div>
+                                                <div 
+                                                    className={`inline-block rounded-lg mt-1.5 mb-3 px-3 py-2 text-xs ${getClassificationColorClasses(result.prediction)}`}
+                                                >{result.prediction}</div>
+                                                <div className="text-xs font-medium text-[var(--color-foreground)]">Confidence</div>
+                                                <div className="mt-1 h-2 w-full rounded-full bg-muted">
+                                                    <div  
+                                                        className={`h-2 rounded-full ${result.prediction.includes("pathogenic") ? "bg-[var(--color-pathogenic)]" : "bg-[var(--color-benign)]"}`}
+                                                    style={{width: `${Math.min(100, result.classification_confidence * 100)}%`
+                                                    }}>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-1 mb-2 text-right text-xs text-[var(--color-foreground)]/60">
+                                                    {Math.round(result.classification_confidence * 100)}%
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="mt-1 mb-2 text-right text-xs text-[var(--color-foreground)]/60">
-                                        {Math.round(variantResult.classification_confidence * 100)}%
-                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
+                            ))}
+                        </CollapsibleContent>
+                    </Collapsible>
                 )}
             </CardContent>
         </Card>

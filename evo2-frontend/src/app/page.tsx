@@ -165,18 +165,18 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e9eeea]">
-      <header className="border-b border-[#3c4f3d]/10 bg-white">
+    <div className="min-h-screen bg-[var(--color-muted)]">
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)]">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <h1 className="text-xl font-light tracking-wide text-[#3c4f3d]">
+              <h1 className="text-xl font-light tracking-wide text-[var(--color-foreground)]">
                 <span className="font-normal">EVO</span>
-                <span className="text-[#de8246]">2</span>
+                <span className="text-[var(--color-brand-primary)]">2</span>
               </h1>
-              <div className="absolute -bottom-1 left-0 h-[2px] w-12 bg-[#de8246]"></div>
+              <div className="absolute -bottom-1 left-0 h-[2px] w-12 bg-[var(--color-brand-primary)]"></div>
             </div>
-            <span className="text-sm font-light text-[#3c4f3d]/70">
+            <span className="text-sm font-light text-[var(--color-muted-foreground)]">
               Variant Analysis
             </span>
           </div>
@@ -192,13 +192,13 @@ export default function HomePage() {
           />
         ) : (
           <>
-            <Card className="mb-6 gap-0 border-none bg-white py-0 shadow-sm">
+            <Card className="mb-6 gap-0 border-none bg-[var(--color-card)] py-0 shadow-sm">
               <CardHeader className="pt-4 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-normal text-[#3c4f3d]/70">
+                  <CardTitle className="text-sm font-normal text-[var(--color-muted-foreground)]">
                     Genome Assembly
                   </CardTitle>
-                  <div className="text-xs text-[#3c4f3d]/60">
+                  <div className="text-xs text-[var(--color-muted-foreground)]">
                     Organism: <span className="font-medium">Human</span>
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export default function HomePage() {
                   onValueChange={handleGenomeChange}
                   disabled={isLoading}
                 >
-                  <SelectTrigger className="h-9 w-full border-[#3c4f3d]/10">
+                  <SelectTrigger className="h-9 w-full border-[var(--color-border)]">
                     <SelectValue placeholder="Select genome assembly" />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,7 +222,7 @@ export default function HomePage() {
                   </SelectContent>
                 </Select>
                 {selectedGenome && (
-                  <p className="mt-2 text-xs text-[#3c4f3d]/60">
+                  <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
                     {
                       genomes.find((genome) => genome.id === selectedGenome)
                         ?.sourceName
@@ -232,9 +232,9 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="mt-6 gap-0 border-none bg-white py-0 shadow-sm">
+            <Card className="mt-6 gap-0 border-none bg-[var(--color-card)] py-0 shadow-sm">
               <CardHeader className="pt-4 pb-2">
-                <CardTitle className="text-sm font-normal text-[#3c4f3d]/70">
+                <CardTitle className="text-sm font-normal text-[var(--color-muted-foreground)]">
                   Browse
                 </CardTitle>
               </CardHeader>
@@ -243,15 +243,15 @@ export default function HomePage() {
                   value={mode}
                   onValueChange={(value) => switchMode(value as Mode)}
                 >
-                  <TabsList className="mb-4 bg-[#e9eeea]">
+                  <TabsList className="mb-4 bg-[var(--color-muted)]">
                     <TabsTrigger
-                      className="data-[state=active]:bg-white data-[state=active]:text-[#3c4f3d]"
+                      className="data-[state=active]:bg-[var(--color-card)] data-[state=active]:text-[var(--color-foreground)]"
                       value="search"
                     >
                       Search Genes
                     </TabsTrigger>
                     <TabsTrigger
-                      className="data-[state=active]:bg-white data-[state=active]:text-[#3c4f3d]"
+                      className="data-[state=active]:bg-[var(--color-card)] data-[state=active]:text-[var(--color-foreground)]"
                       value="browse"
                     >
                       Browse Chromosomes
@@ -270,11 +270,11 @@ export default function HomePage() {
                             placeholder="Enter gene symbol or name"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="h-9 border-[#3c4f3d]/10 pr-10"
+                            className="h-9 border-[var(--color-border)] pr-10"
                           />
                           <Button
                             type="submit"
-                            className="absolute top-0 right-0 h-full cursor-pointer rounded-l-none bg-[#3c4f3d] text-white hover:bg-[#3c4f3d]/90"
+                            className="absolute top-0 right-0 h-full cursor-pointer rounded-l-none bg-[var(--color-foreground)] text-[var(--color-card)] hover:bg-[var(--color-foreground)]/90"
                             size="icon"
                             disabled={isLoading || !searchQuery.trim()}
                           >
@@ -285,7 +285,7 @@ export default function HomePage() {
                       </form>
                       <Button
                         variant="link"
-                        className="h-auto cursor-pointer p-0 text-[#de8246] hover:text-[#de8246]/80"
+                        className="h-auto cursor-pointer p-0 text-[var(--color-brand-primary)] hover:text-[var(--color-brand-primary)]/80"
                         onClick={loadBRCA1Example}
                       >
                         Try BRCA1 example
@@ -301,7 +301,7 @@ export default function HomePage() {
                             key={chrom.name}
                             variant="outline"
                             size="sm"
-                            className={`h-8 cursor-pointer border-[#3c4f3d]/10 hover:bg-[#e9eeea] hover:text-[#3c4f3d] ${selectedChromosome === chrom.name ? "text[#3c4f3d] bg-[#e9eeea]" : ""}`}
+                            className={`h-8 cursor-pointer border-[var(--color-border)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] ${selectedChromosome === chrom.name ? "text-[var(--color-foreground)] bg-[var(--color-muted)]" : ""}`}
                             onClick={() => setSelectedChromosome(chrom.name)}
                           >
                             {chrom.name}
@@ -314,7 +314,7 @@ export default function HomePage() {
 
                 {isLoading && (
                   <div className="flex justify-center py-4">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#3c4f3d]/30 border-t-[#de8243]"></div>
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-brand-primary)]"></div>
                   </div>
                 )}
 
@@ -327,18 +327,18 @@ export default function HomePage() {
                 {searchResults.length > 0 && !isLoading && (
                   <div className="mt-6">
                     <div className="mb-2">
-                      <h4 className="text-xs font-normal text-[#3c4f3d]/70">
+                      <h4 className="text-xs font-normal text-[var(--color-muted-foreground)]">
                         {mode === "search" ? (
                           <>
                             Search Results:{" "}
-                            <span className="font-medium text-[#3c4f3d]">
+                            <span className="font-medium text-[var(--color-foreground)]">
                               {searchResults.length} genes
                             </span>
                           </>
                         ) : (
                           <>
                             Genes on {selectedChromosome}:{" "}
-                            <span className="font-medium text-[#3c4f3d]">
+                            <span className="font-medium text-[var(--color-foreground)]">
                               {searchResults.length} found
                             </span>
                           </>
@@ -346,41 +346,43 @@ export default function HomePage() {
                       </h4>
                     </div>
 
-                    <div className="overflow-hidden rounded-md border border-[#3c4f3d]/5">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-[#e9eeea]/50 hover:bg-[e9eeea]/70">
-                            <TableHead className="text-xs font-normal text-[#3c4f3d]/70">
-                              Symbol
-                            </TableHead>
-                            <TableHead className="text-xs font-normal text-[#3c4f3d]/70">
-                              Name
-                            </TableHead>
-                            <TableHead className="text-xs font-normal text-[#3c4f3d]/70">
-                              Location
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(searchResults || []).map((gene, index) => (
-                            <TableRow
-                              key={`${gene.symbol}-${index}`}
-                              className="cursor-pointer border-b border-[#3c4f3d]/5 hover:bg-[#e9eeea]/50"
-                              onClick={() => setSelectedGene(gene)}
-                            >
-                              <TableCell className="py-2 font-medium text-[#3c4f3d]">
-                                {gene.symbol}
-                              </TableCell>
-                              <TableCell className="py-2 font-medium text-[#3c4f3d]">
-                                {gene.name}
-                              </TableCell>
-                              <TableCell className="py-2 font-medium text-[#3c4f3d]">
-                                {gene.chrom}
-                              </TableCell>
+                    <div className="overflow-hidden rounded-md border border-[var(--color-border)]">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-[var(--color-muted)] hover:bg-[var(--color-muted)]/50">
+                              <TableHead className="whitespace-nowrap text-xs font-normal text-[var(--color-muted-foreground)]">
+                                Symbol
+                              </TableHead>
+                              <TableHead className="whitespace-nowrap text-xs font-normal text-[var(--color-muted-foreground)]">
+                                Name
+                              </TableHead>
+                              <TableHead className="whitespace-nowrap text-xs font-normal text-[var(--color-muted-foreground)]">
+                                Location
+                              </TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {(searchResults || []).map((gene, index) => (
+                              <TableRow
+                                key={`${gene.symbol}-${index}`}
+                                className="cursor-pointer border-b border-[var(--color-border)] hover:bg-[var(--color-muted)]/50"
+                                onClick={() => setSelectedGene(gene)}
+                              >
+                                <TableCell className="whitespace-nowrap py-2 font-medium text-[var(--color-foreground)]">
+                                  {gene.symbol}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap py-2 font-medium text-[var(--color-foreground)]">
+                                  {gene.name}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap py-2 font-medium text-[var(--color-foreground)]">
+                                  {gene.chrom}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </div>
                 )}
