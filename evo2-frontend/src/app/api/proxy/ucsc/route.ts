@@ -25,61 +25,48 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid host in endpoint' }, { status: 400 });
         }
 
-        // Forward the request to UCSC API with retries and backoff
-        let lastError: unknown;
-        for (let i = 0; i < 3; i++) {
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'GET',
-                    headers: {
-                        'User-Agent': 'Evo2-Variant-Analysis/1.0',
-                        'Accept': 'application/json',
-                    },
-                });
+        try {
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Evo2-Variant-Analysis/1.0',
+                    'Accept': 'application/json',
+                },
+                // Set a reasonable timeout
+                signal: AbortSignal.timeout(15000), // 15 seconds
+            });
 
-                if (response.status === 429) {
-                    const retryAfter = response.headers.get('Retry-After');
-                    const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : (i + 1) * 2000;
-                    await new Promise(res => setTimeout(res, waitTime));
-                    lastError = new Error('Rate limit hit');
-                    continue; // Retry after waiting
-                }
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    if (response.status >= 400 && response.status < 500) {
-                        return NextResponse.json(
-                            { error: `UCSC API Client Error: ${response.status} ${response.statusText}`, details: errorText },
-                            { status: response.status }
-                        );
-                    }
-                    throw new Error(`UCSC API Server Error: ${response.status} ${response.statusText} - ${errorText}`);
-                }
-
-                const data = await response.json() as unknown;
-                
-                // Success, return response with cache header
-                return NextResponse.json(data, {
-                    headers: {
-                        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200', // 1h TTL, 2h stale
-                    },
-                });
-
-            } catch (error) {
-                lastError = error;
-                await new Promise(res => setTimeout(res, (i + 1) * 1000)); // Exponential backoff
+            if (!response.ok) {
+                // If UCSC returned an error, forward it as a structured JSON response
+                const errorText = await response.text();
+                return NextResponse.json(
+                    { error: `UCSC API Error: ${response.status} ${response.statusText}`, details: errorText },
+                    { status: response.status }
+                );
             }
-        }
-        
-        // If all retries fail
-        return NextResponse.json(
-            { error: 'Internal server error after multiple retries', details: lastError instanceof Error ? lastError.message : String(lastError) },
-            { status: 500 }
-        );
 
-    } catch {
+            const data = await response.json() as unknown;
+            
+            // Success, return response with cache header
+            return NextResponse.json(data, {
+                headers: {
+                    // Cache for 1 hour, allow serving stale for 1 day
+                    'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+                },
+            });
+        } catch (error) {
+            // This catches network errors, timeouts, etc., when trying to reach UCSC
+            console.error(`[UCSC PROXY] Fetch error:`, error);
+            return NextResponse.json(
+                { error: 'Bad Gateway: The UCSC API is not reachable.' },
+                { status: 502 }
+            );
+        }
+    } catch (e) {
+        // This is a final catch-all for any unexpected errors in the proxy logic itself.
+        console.error(`[UCSC PROXY] Internal error:`, e);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Internal Server Error' },
             { status: 500 }
         );
     }
