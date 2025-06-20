@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = "force-dynamic";
-
 // Simple in-memory rate limiting (in production, use Redis or similar)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const NCBI_RATE_LIMIT = 3; // requests per second

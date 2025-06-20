@@ -172,7 +172,6 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             return;
         }
 
-        setShowAssertion(true);
         setSequenceAssertion({
             fetchedNucleotide: undefined,
             clinvarReference: clinvarReference,
@@ -383,6 +382,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                 </div>
                             </div>
                             {/* Collapsible for sequence assertion */}
+                            {sequenceAssertion && (
                             <Collapsible open={showAssertion} onOpenChange={setShowAssertion}>
                                 <CollapsibleTrigger asChild>
                                     <button type="button" className="mt-4 text-xs underline text-[var(--color-link)] cursor-pointer">
@@ -393,7 +393,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                     <div className="mt-2 p-2 rounded bg-[var(--color-muted)] text-xs">
                                         {sequenceAssertion === null && <span>Loading reference nucleotide from UCSC...</span>}
                                         {sequenceAssertion?.error && <span className="text-[var(--color-destructive)]">Error: {sequenceAssertion.error}</span>}
-                                        {sequenceAssertion && !sequenceAssertion.error && (
+                                        {sequenceAssertion && !sequenceAssertion.error && sequenceAssertion.fetchedNucleotide && (
                                             <>
                                                 <div className="mb-2">
                                                     <span className="font-medium">ClinVar Gene:</span> {matchedVariant?.title?.split(':')?.[0]?.split('(')?.[1]?.replace(')', '')} ({matchedVariant?.title?.split(':')?.[0]})
@@ -413,7 +413,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                                     <span className="font-medium">Position:</span> {sequenceAssertion.position.toLocaleString()}
                                                 </div>
                                                 <div className="mb-2">
-                                                    <span className="font-medium">Fetched nucleotide from UCSC:</span> <span className={`font-mono ${sequenceAssertion.fetchedNucleotide ? getNucleotideColorClass(sequenceAssertion.fetchedNucleotide) : ''} `}>{sequenceAssertion.fetchedNucleotide ?? 'Loading...'}</span>
+                                                    <span className="font-medium">Fetched nucleotide from UCSC:</span> <span className={`font-mono ${getNucleotideColorClass(sequenceAssertion.fetchedNucleotide)}`}>{sequenceAssertion.fetchedNucleotide}</span>
                                                     {sequenceAssertion.isNegativeStrand && (
                                                         <span className="ml-1 text-xs text-[var(--color-foreground)]/70">
                                                             (reverse complemented)*
@@ -446,9 +446,13 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                                 )}
                                             </>
                                         )}
+                                        {sequenceAssertion && !sequenceAssertion.error && !sequenceAssertion.fetchedNucleotide && (
+                                            <span>Loading reference nucleotide from UCSC...</span>
+                                        )}
                                     </div>
                                 </CollapsibleContent>
                             </Collapsible>
+                            )}
                         </div>
                     )
                 })[0]}
