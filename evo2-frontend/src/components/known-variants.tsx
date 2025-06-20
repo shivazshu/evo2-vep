@@ -230,16 +230,16 @@ export default function KnownVaraints({
                                                     {variant.variation_type}
                                                 </div>
                                             </div>
-                                            <div className="py-2 text-xs flex flex-col items-start w-full h-full justify-center">
+                                            <div className="py-2 text-xs flex flex-col items-start h-full justify-center">
                                                 <div
-                                                    className={`w-fit rounded-md px-2 py-1 text-center font-normal ${getClassificationColorClasses(variant.classification)}`}
+                                                    className={`rounded-md px-2 py-1 text-center font-normal ${getClassificationColorClasses(variant.classification)}`}
                                                 >
                                                     {variant.classification || "Unknown"}
                                                 </div>
                                                 {variant.evo2Result && (
-                                                    <div className="mt-2 w-full flex justify-start">
+                                                    <div className="mt-2 flex justify-start">
                                                         <div
-                                                            className={`flex w-fit items-center gap-1 rounded-md px-2 py-1 text-center ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
+                                                            className={`flex items-center gap-1 rounded-md px-2 py-1 text-center ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
                                                         >
                                                             <Shield className="h-3 w-3" />
                                                             <span>Evo2: {variant.evo2Result.prediction}</span>
