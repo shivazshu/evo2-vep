@@ -214,3 +214,5 @@ evo2-backend/.dmypy.json
 evo2-backend/.pyre/
 evo2-backend/.pytype/
 evo2-backend/cython_debug/
+# Local Netlify folder
+.netlify

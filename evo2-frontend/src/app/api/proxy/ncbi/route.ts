@@ -4,8 +4,10 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const endpoint = searchParams.get('endpoint');
+        console.log('NCBI proxy: received request for', endpoint);
         
         if (!endpoint) {
+            console.error('NCBI proxy: missing endpoint parameter');
             return NextResponse.json(
                 { error: 'Missing endpoint parameter' },
                 { status: 400 }
@@ -22,10 +24,12 @@ export async function GET(request: NextRequest) {
         try {
             urlObject = new URL(endpoint);
         } catch (error) {
+            console.error('NCBI proxy: invalid endpoint URL format', error);
             return NextResponse.json({ error: 'Invalid endpoint URL format' }, { status: 400 });
         }
 
         if (!allowedHosts.includes(urlObject.hostname)) {
+            console.error('NCBI proxy: invalid host in endpoint', urlObject.hostname);
             return NextResponse.json({ error: 'Invalid host in endpoint' }, { status: 400 });
         }
         
@@ -33,6 +37,7 @@ export async function GET(request: NextRequest) {
         let lastError: unknown;
         for (let i = 0; i < 3; i++) {
             try {
+                console.log('NCBI proxy: fetching', endpoint);
                 const response = await fetch(endpoint, {
                     method: 'GET',
                     headers: {
@@ -44,6 +49,7 @@ export async function GET(request: NextRequest) {
                 if (response.status === 429) {
                     const retryAfter = response.headers.get('Retry-After');
                     const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : (i + 1) * 2000;
+                    console.warn('NCBI proxy: rate limit hit, retrying after', waitTime, 'ms');
                     await new Promise(res => setTimeout(res, waitTime));
                     lastError = new Error('Rate limit hit');
                     continue; // Retry after waiting
@@ -53,6 +59,7 @@ export async function GET(request: NextRequest) {
                     const errorText = await response.text();
                     // Don't retry on client errors, but do on server errors
                     if (response.status >= 400 && response.status < 500) {
+                        console.error('NCBI proxy: client error', response.status, errorText);
                         return NextResponse.json(
                             { error: `NCBI API Client Error: ${response.status} ${response.statusText}`, details: errorText },
                             { status: response.status }
@@ -71,15 +78,17 @@ export async function GET(request: NextRequest) {
                     data = await response.text();
                 }
                 
+                console.log('NCBI proxy: success, returning data');
                 // Success, return response with cache header
                 return NextResponse.json(data, {
                     headers: {
-                        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600', // 30m TTL, 60m stale
+                        'Cache-Control': 'no-store', // Disable CDN caching
                     },
                 });
 
             } catch (error) {
                 lastError = error;
+                console.error('NCBI proxy: fetch error', error);
                 await new Promise(res => setTimeout(res, (i + 1) * 1000)); // Exponential backoff
             }
         }
