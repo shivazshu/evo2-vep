@@ -45,69 +45,84 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Validate endpoint to prevent SSRF attacks - more flexible validation
-        const isValidEndpoint = 
-            endpoint.includes('eutils/esearch.fcgi') ||
-            endpoint.includes('eutils/esummary.fcgi') ||
-            endpoint.includes('eutils/efetch.fcgi') ||
-            endpoint.includes('ncbi_genes/v3/search') ||
-            endpoint.includes('clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search');
+        // Validate endpoint to prevent SSRF attacks
+        const allowedHosts = [
+            'eutils.ncbi.nlm.nih.gov',
+            'clinicaltables.nlm.nih.gov'
+        ];
         
-        if (!isValidEndpoint) {
-            return NextResponse.json(
-                { error: 'Invalid endpoint' },
-                { status: 400 }
-            );
+        let urlObject;
+        try {
+            urlObject = new URL(endpoint);
+        } catch (error) {
+            return NextResponse.json({ error: 'Invalid endpoint URL format' }, { status: 400 });
         }
 
-        // Construct the full URL
-        let ncbiUrl: string;
-        if (endpoint.startsWith('clinicaltables')) {
-            ncbiUrl = `https://${endpoint}`;
-        } else if (endpoint.includes('ncbi_genes/v3/search')) {
-            // Handle the ncbi_genes endpoint
-            ncbiUrl = `https://clinicaltables.nlm.nih.gov/api/${endpoint}`;
-        } else {
-            ncbiUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/${endpoint}`;
+        if (!allowedHosts.includes(urlObject.hostname)) {
+            return NextResponse.json({ error: 'Invalid host in endpoint' }, { status: 400 });
         }
         
-        // Forward the request to NCBI API
-        const response = await fetch(ncbiUrl, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Evo2-Variant-Analysis/1.0',
-                'Accept': 'application/json',
-            },
-        });
+        // Forward the request to NCBI API with retries and backoff
+        let lastError: unknown;
+        for (let i = 0; i < 3; i++) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Evo2-Variant-Analysis/1.0',
+                        'Accept': 'application/json',
+                    },
+                });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`NCBI API error: ${response.status} ${response.statusText}`, errorText);
-            
-            return NextResponse.json(
-                { 
-                    error: `NCBI API Error: ${response.status} ${response.statusText}`,
-                    details: errorText
-                },
-                { status: response.status }
-            );
-        }
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After');
+                    const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : (i + 1) * 2000;
+                    await new Promise(res => setTimeout(res, waitTime));
+                    lastError = new Error('Rate limit hit');
+                    continue; // Retry after waiting
+                }
 
-        // Handle different response types
-        const contentType = response.headers.get('content-type');
-        let data: unknown;
-        
-        if (contentType?.includes('application/json')) {
-            data = await response.json();
-        } else {
-            data = await response.text();
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    // Don't retry on client errors, but do on server errors
+                    if (response.status >= 400 && response.status < 500) {
+                        return NextResponse.json(
+                            { error: `NCBI API Client Error: ${response.status} ${response.statusText}`, details: errorText },
+                            { status: response.status }
+                        );
+                    }
+                    throw new Error(`NCBI API Server Error: ${response.status} ${response.statusText} - ${errorText}`);
+                }
+
+                // Handle different response types
+                const contentType = response.headers.get('content-type');
+                let data: unknown;
+                
+                if (contentType?.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    data = await response.text();
+                }
+                
+                // Success, return response with cache header
+                return NextResponse.json(data, {
+                    headers: {
+                        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600', // 30m TTL, 60m stale
+                    },
+                });
+
+            } catch (error) {
+                lastError = error;
+                await new Promise(res => setTimeout(res, (i + 1) * 1000)); // Exponential backoff
+            }
         }
         
-        return NextResponse.json(data, {
-            headers: {
-                'Cache-Control': 'public, max-age=1800', // Cache for 30 minutes
-            },
-        });
+        // If all retries fail
+        console.error('NCBI proxy error after retries:', lastError);
+        return NextResponse.json(
+            { error: 'Internal server error after multiple retries', details: lastError instanceof Error ? lastError.message : String(lastError) },
+            { status: 500 }
+        );
     } catch (error) {
         console.error('NCBI proxy error:', error);
         return NextResponse.json(

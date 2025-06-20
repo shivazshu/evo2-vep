@@ -26,7 +26,6 @@ import {
   getAvailableGenomes,
   getGenomeChromosomes,
   searchGenes,
-  clearCache,
   type GenomeAssemblyFromSearch,
   type ChromosomeFromSearch,
   type GeneFromSearch,
@@ -45,11 +44,6 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("search");
-
-  // Clear cache on mount to ensure fresh results
-  useEffect(() => {
-    clearCache();
-  }, []);
 
   useEffect(() => {
     const fetchGenomes = async () => {
