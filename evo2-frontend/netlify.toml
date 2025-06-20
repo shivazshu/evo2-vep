@@ -1,5 +1,4 @@
 [build]
-  base = "evo2-frontend"
   command = "npm run build"
 
 [build.environment]
