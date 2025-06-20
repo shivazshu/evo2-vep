@@ -98,8 +98,8 @@ export default function GeneViewer({
                 try { 
                     const {geneDetails: fetchedDetails, geneBounds: fetchedGeneBounds, initialRange: fetchedRange} = await fetchGeneDetails(gene.gene_id);
     
-                    if (!fetchedDetails || !fetchedGeneBounds) {
-                        setError(`Unable to fetch details for gene ${gene.symbol} (ID: ${gene.gene_id}). This gene may not exist in the current genome assembly or may have been entered incorrectly.`);
+                    if (!fetchedDetails || !fetchedGeneBounds || !fetchedDetails.genomicinfo || fetchedDetails.genomicinfo.length === 0) {
+                        setError(`Unable to fetch critical genomic details for gene ${gene.symbol} (ID: ${gene.gene_id}). The gene may be valid, but coordinate information is missing from the database.`);
                         setIsLoading(false);
                         return;
                     }
