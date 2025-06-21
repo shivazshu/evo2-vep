@@ -279,7 +279,7 @@ export function GeneSequence( {
         }
     }, [onSequenceLoadRequest]);
 
-    return  <Card className="gap-0 border-none py-0 bg-white shadow-sm">
+    return  <Card className="gap-0 border-none py-0 bg-[var(--color-card)] shadow-sm">
         <CardHeader className="pt-4 pb-2">
             <CardTitle className="flex flex-row items-center justify-between">
                 <div className="text-sm font-normal text-[var(--color-foreground)]/70">Gene Sequence</div>
@@ -327,12 +327,12 @@ export function GeneSequence( {
                                 />
                             </div>
                             <div
-                                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-[var(--color-primary)] bg-white shadow transition-transform hover:scale-110"
+                                className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-[var(--color-primary)] bg-[var(--color-background)] shadow-md transition-transform hover:scale-110"
                                 style={{ left: `${sliderValues.start}%` }}
                                 onMouseDown={(e) => handleMouseDown(e, "start")}
                             />
                             <div
-                                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-[var(--color-primary)] bg-white shadow transition-transform hover:scale-110"
+                                className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-[var(--color-primary)] bg-[var(--color-background)] shadow-md transition-transform hover:scale-110"
                                 style={{ left: `${sliderValues.end}%` }}
                                 onMouseDown={(e) => handleMouseDown(e, "end")}
                             />
@@ -394,35 +394,6 @@ export function GeneSequence( {
                 </span>
             </div>
 
-            {error && (
-                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-destructive)] bg-[var(--color-destructive)]/10 p-3 text-sm text-[var(--color-destructive)]">
-                    <span className="mt-0.5 text-lg">⚠️</span>
-                    <div>
-                        <div className="font-medium">Error loading sequence:</div>
-                        <div className="mt-1">{error}</div>
-                        {error.includes("429") || error.includes("rate limit") ? (
-                            <div className="mt-2 flex items-center gap-2">
-                                <span className="text-xs text-[var(--color-foreground)]/70">
-                                    Rate limit reached. Please wait or clear your cache.
-                                </span>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                        clearRateLimitCache();
-                                        clearCache();
-                                        window.location.reload();
-                                    }}
-                                    className="h-6 text-xs"
-                                >
-                                    Clear Cache & Reload
-                                </Button>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
-            )}
-
             {/* Queue Status Indicator */}
             {isCurrentRegionQueuedOrProcessing && (
                 <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)]/10 p-3 text-sm text-[var(--color-primary)]">
@@ -457,18 +428,48 @@ export function GeneSequence( {
 
             <div className="w-full mb-2 rounded-md bg-[var(--color-muted)]/50 p-3">
                 {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)]">
+                    <div className="flex items-center justify-center py-8">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)]">
+                        </div>
+                    </div> 
+                ) : error ? (
+                    <div className="flex items-start gap-2 rounded-md border border-[var(--color-warning)] bg-[var(--color-warning)]/10 p-3 text-sm text-[var(--color-warning)]">
+                        <span className="mt-0.5 text-lg">⚠️</span>
+                        <div>
+                            <div className="font-medium">Error loading sequence:</div>
+                            <div className="mt-1">{error}</div>
+                            {error.includes("429") || error.includes("rate limit") ? (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <span className="text-xs text-[var(--color-foreground)]/70">
+                                        Rate limit reached. Please wait or clear your cache.
+                                    </span>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            clearRateLimitCache();
+                                            clearCache();
+                                            window.location.reload();
+                                        }}
+                                        className="h-6 text-xs"
+                                    >
+                                        Clear Cache & Reload
+                                    </Button>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-                </div> ) : sequenceData ? (
+                ) : sequenceData ? (
                     <div className="h-64 overflow-x-auto overflow-y-auto"> 
                         <pre className="font-mono text-xs leading-relaxed">
                             {formattedSequence}
                         </pre>
                     </div>
-                ) : <p className="text-center text-sm text-[var(--color-foreground)]/60">
-                    {error ? "Error loading sequence." : "No sequence data loaded."}
-                    </p>}
+                ) : (
+                    <p className="text-center text-sm text-[var(--color-foreground)]/60">
+                        No sequence data loaded.
+                    </p>
+                )}
             </div>
 
             {hoverPosition != null && mousePosition != null && (

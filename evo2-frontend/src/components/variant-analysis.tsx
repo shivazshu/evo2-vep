@@ -247,9 +247,12 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
     }, [clinvarVariants, variantPosition, genomeId, chromosome, geneDetails, gene, sequenceAssertion?.clinvarReference, sequenceAssertion?.position]);
 
     return (
-        <Card className="gap-0 border-none bg-white py-0 shadow-sm">
+        <Card className="gap-0 border-none bg-[var(--color-card)] py-0 shadow-sm">
             <CardHeader className="pt-4 pb-2">
-                <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">Variant Analysis</CardTitle>
+                <CardTitle className="flex items-center text-sm font-normal text-[var(--color-foreground)]/70">
+                    <Zap className="mr-2 h-4 w-4" />
+                    Variant Analysis
+                </CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
                 <p className="mb-4 text-xs text-[var(--color-foreground)]/80">
@@ -327,7 +330,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                 </div>
 
                 {variantError && (
-                    <div className="mt-4 rounded-md bg-[var(--color-destructive)]/10 text-xs text-[var(--color-destructive)] p-3">
+                    <div className="mt-2 text-xs text-[var(--color-warning)]">
                         {variantError}
                     </div>
                 )}
@@ -424,7 +427,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                 <CollapsibleContent>
                                     <div className="mt-2 p-2 rounded bg-[var(--color-muted)] text-xs">
                                         {sequenceAssertion === null && <span>Loading reference nucleotide from UCSC...</span>}
-                                        {sequenceAssertion?.error && <span className="text-[var(--color-destructive)]">Error: {sequenceAssertion.error}</span>}
+                                        {sequenceAssertion?.error && <span className="text-[var(--color-warning)]">Error: {sequenceAssertion.error}</span>}
                                         {sequenceAssertion && !sequenceAssertion.error && sequenceAssertion.fetchedNucleotide && (
                                             <>
                                                 <div className="mb-2">
@@ -457,9 +460,9 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                                 </div>
                                                 <div>
                                                     <span className="font-medium">Assertion:</span> {sequenceAssertion.match ? (
-                                                        <span className="text-green-600 font-semibold">MATCH</span>
+                                                        <span className="text-[var(--color-success)] font-semibold">MATCH</span>
                                                     ) : (
-                                                        <span className="text-red-600 font-semibold">MISMATCH</span>
+                                                        <span className="text-[var(--color-warning)] font-semibold">MISMATCH</span>
                                                     )}
                                                     {!sequenceAssertion.match && (
                                                         <span className="ml-2 text-xs text-[var(--color-foreground)]/70">

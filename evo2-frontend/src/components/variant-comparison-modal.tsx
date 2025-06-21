@@ -19,7 +19,7 @@ export function VariantComparisonModal({
     const isMatch = classification.toLowerCase() === evo2Result.prediction.toLowerCase();
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-background)]/50 p-4 backdrop-blur-sm">
             <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto">
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -146,11 +146,11 @@ export function VariantComparisonModal({
                             {/* Assessment Check */}
                             <div className="md:col-span-2 rounded-md bg-[var(--color-muted)]/20 text-xs p-3 leading-relaxed">
                                 <div className="flex items-center gap-2">
-                                    <span className={`flex h-5 w-5 items-center justify-center rounded-full ${isMatch ? "bg-green-200" : "bg-red-200"}`}>
+                                    <span className={`flex h-5 w-5 items-center justify-center rounded-full ${isMatch ? "bg-[var(--color-success)]/20" : "bg-[var(--color-warning)]/20"}`}>
                                         {isMatch ? (
-                                            <Check className="h-3 w-3 text-green-600" />
+                                            <Check className="h-3 w-3 text-[var(--color-success)]" />
                                         ) : (
-                                            <span className="h-3 w-3 flex items-center justify-center font-bold text-yellow-600">!</span>
+                                            <span className="h-3 w-3 flex items-center justify-center font-bold text-[var(--color-caution)]">!</span>
                                         )}
                                     </span>
                                     <span className="font-medium text-[var(--color-foreground)]">
@@ -169,7 +169,7 @@ export function VariantComparisonModal({
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="cursor-pointer border-[var(--color-border)] bg-white text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/70"
+                        className="cursor-pointer border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/70"
                     >
                         Close
                     </Button>

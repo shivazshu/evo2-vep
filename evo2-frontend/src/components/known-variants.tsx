@@ -108,7 +108,7 @@ export default function KnownVaraints({
     };
 
     return (
-        <Card className="gap-0 border-none bg-white py-0 shadow-sm">
+        <Card className="gap-0 border-none bg-[var(--color-card)] py-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pt-4 pb-2">
                 <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">
                     Known Variants in Gene from ClinVar
@@ -127,7 +127,7 @@ export default function KnownVaraints({
 
             <CardContent className="pb-4">
                 {clinvarError && (
-                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-destructive)] bg-[var(--color-destructive)]/10 p-3 text-xs text-[var(--color-destructive)]">
+                <div className="mb-4 flex items-start gap-2 rounded-md border border-[var(--color-warning)] bg-[var(--color-warning)]/10 p-3 text-xs text-[var(--color-warning)]">
                     <span className="mt-0.5 text-lg">⚠️</span>
                     <div>
                         <div className="font-medium">Error loading variants:</div>
@@ -195,7 +195,7 @@ export default function KnownVaraints({
                                 {clinvarVariants.map((variant) => (
                                     <tr
                                         key={variant.clinvar_id}
-                                        className="border-b border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]/50"
+                                        className="border-b border-[var(--color-border)] bg-[var(--color-card)] hover:bg-[var(--color-muted)]/50"
                                     >
                                         <td className="p-4 align-middle">
                                             <div className="text-xs font-medium text-[var(--color-foreground)] break-words">
@@ -253,11 +253,10 @@ export default function KnownVaraints({
                                                     .includes("single nucleotide") ? (
                                                     !variant.evo2Result ? (
                                                         <Button
-                                                            variant="outline"
                                                             size="sm"
-                                                            className="h-7 cursor-pointer border-[var(--color-border)] bg-[var(--color-muted)] px-3 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/80"
-                                                            disabled={variant.isAnalyzing}
                                                             onClick={() => analyzeVariant(variant)}
+                                                            disabled={variant.isAnalyzing}
+                                                            className="h-7 cursor-pointer border-[var(--color-border)] bg-[var(--color-muted)] px-3 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/80"
                                                         >
                                                             {variant.isAnalyzing ? (
                                                                 <>
@@ -273,9 +272,8 @@ export default function KnownVaraints({
                                                         </Button>
                                                     ) : (
                                                         <Button
-                                                            variant="outline"
                                                             size="sm"
-                                                            className="h-7 cursor-pointer border-green-200 bg-green-50 px-3 text-xs text-green-700 hover:bg-green-100"
+                                                            className="h-7 cursor-pointer border-[var(--color-success)]/50 bg-[var(--color-success)]/10 px-3 text-xs text-[var(--color-success)] hover:bg-[var(--color-success)]/20"
                                                             onClick={() => showComparison(variant)}
                                                         >
                                                             <BarChart2 className="lg:mr-1 inline-block h-3 w-3" />

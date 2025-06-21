@@ -10,8 +10,12 @@ export function GeneInformation({
         geneDetails : GeneDetailsFromSearch | null, 
         geneBounds: GeneBounds | null,
     }) {
-        return <Card className="gap-0 border-none bg-white py-0 shadow-sm">
-            <CardHeader className="pt-4 pb-4">
+        if (!geneDetails) return <div className="text-center text-[var(--color-muted-foreground)]">No gene details available.</div>;
+
+        const summary = geneDetails.summary?.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') ?? "No summary available.";
+
+        return <Card className="gap-0 border-none bg-[var(--color-card)] py-0 shadow-sm">
+            <CardHeader className="pt-4 pb-2">
                 <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">Gene Information</CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
@@ -80,7 +84,7 @@ export function GeneInformation({
                             <div className="mt-4 ">
                                 <h3 className="mb-2 text-xs font-medium text-[var(--color-foreground)]">Summary:</h3>
                                 <p className="text-xs leading-relaxed text-[var(--color-foreground)]">
-                                    {geneDetails.summary}
+                                    {summary}
                                 </p>
                             </div>
                         )}

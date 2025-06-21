@@ -319,7 +319,7 @@ export default function HomePage() {
                 )}
 
                 {error && (
-                  <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <div className="mt-4 rounded-md border border-[var(--color-warning)] bg-[var(--color-warning)]/10 text-xs text-[var(--color-warning)] p-3">
                     {error}
                   </div>
                 )}
@@ -388,8 +388,8 @@ export default function HomePage() {
                 )}
 
                 {!isLoading && !error && searchResults.length === 0 && (
-                  <div className="flex h-48 flex-col items-center justify-center text-center text-gray-400">
-                    <Search className="mb-4 h-10 w-10 text-gray-400" />
+                  <div className="flex h-48 flex-col items-center justify-center text-center text-[var(--color-muted-foreground)]">
+                    <Search className="mb-4 h-10 w-10 text-[var(--color-muted-foreground)]" />
                     <p className="text-sm leading-relaxed">
                       {mode === "search"
                         ? "Enter a gene or symbol and click search"
