@@ -180,56 +180,54 @@ export default function KnownVaraints({
                 )}
 
                 {!isLoadingClinvar && !isCurrentRegionQueuedOrProcessing && clinvarVariants.length > 0 && (
-                    <div className="rounded-md border border-[var(--color-border)]">
-                        <div className="w-full">
-                            {/* Fixed Header */}
-                            <div className="bg-[var(--color-muted)] border-b border-[var(--color-border)]">
-                                <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr] gap-x-4 px-4 py-2">
-                                    <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Variant</div>
-                                    <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Type</div>
-                                    <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Clinical Significance</div>
-                                    <div className="text-xs font-medium text-[var(--color-foreground)] text-start">Actions</div>
-                                </div>
-                            </div>
+                    <div className="rounded-md border border-[var(--color-border)] h-96 overflow-auto">
+                        <table className="w-full border-collapse">
+                            <thead className="sticky top-0 bg-[var(--color-muted)] z-10">
+                                <tr>
+                                    <th className="p-4 text-xs font-medium text-[var(--color-foreground)] text-left w-[33.33%]">Variant</th>
+                                    <th className="p-4 text-xs font-medium text-[var(--color-foreground)] text-left w-[25%]">Type</th>
+                                    <th className="p-4 text-xs font-medium text-[var(--color-foreground)] text-left w-[25%]">Clinical Significance</th>
+                                    <th className="p-4 text-xs font-medium text-[var(--color-foreground)] text-left w-[16.67%]">Actions</th>
+                                </tr>
+                            </thead>
                             
-                            {/* Scrollable Body */}
-                            <div className="h-96 overflow-y-auto overflow-x-hidden">
-                                <div className="w-full">
-                                    {clinvarVariants.map((variant) => (
-                                        <div
-                                            key={variant.clinvar_id}
-                                            className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr] items-center gap-x-4 px-4 py-2 border-b border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]/50"
-                                        >
-                                            <div className="py-2 h-full flex flex-col justify-center">
-                                                <div className="text-xs font-medium text-[var(--color-foreground)] break-words">
-                                                    {variant.title}
-                                                </div>
-                                                <div className="mt-1 grid grid-cols-[140px_1fr] items-center">
-                                                    <div className="text-xs text-[var(--color-foreground)]/70">
-                                                        Location: {variant.location}
-                                                    </div>
-                                                    <Button
-                                                        variant="link"
-                                                        size="sm"
-                                                        className="h-6 cursor-pointer px-0 text-xs text-[var(--color-link)] hover:text-[var(--color-link)]/80 justify-start"
-                                                        onClick={() =>
-                                                            window.open(
-                                                                `https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvar_id}`,
-                                                                "_blank",
-                                                            )
-                                                        }
-                                                    >
-                                                        View in ClinVar
-                                                        <ExternalLink className="ml-1 inline-block h-3 w-3" />
-                                                    </Button>
-                                                </div>
+                            <tbody>
+                                {clinvarVariants.map((variant) => (
+                                    <tr
+                                        key={variant.clinvar_id}
+                                        className="border-b border-[var(--color-border)] bg-white hover:bg-[var(--color-muted)]/50"
+                                    >
+                                        <td className="p-4 align-middle">
+                                            <div className="text-xs font-medium text-[var(--color-foreground)] break-words">
+                                                {variant.title}
                                             </div>
-                                            <div className="py-2 text-xs flex items-center justify-start">
-                                                <div className="break-words">
-                                                    {variant.variation_type}
+                                            <div className="mt-1 grid grid-cols-[140px_1fr] items-center">
+                                                <div className="text-xs text-[var(--color-foreground)]/70">
+                                                    Location: {variant.location}
                                                 </div>
+                                                <Button
+                                                    variant="link"
+                                                    size="sm"
+                                                    className="h-6 cursor-pointer px-0 text-xs text-[var(--color-link)] hover:text-[var(--color-link)]/80 justify-start"
+                                                    onClick={() =>
+                                                        window.open(
+                                                            `https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvar_id}`,
+                                                            "_blank",
+                                                        )
+                                                    }
+                                                >
+                                                    View in ClinVar
+                                                    <ExternalLink className="ml-1 inline-block h-3 w-3" />
+                                                </Button>
                                             </div>
-                                            <div className="py-2 text-xs">
+                                        </td>
+                                        <td className="p-4 align-middle">
+                                            <div className="text-xs break-words">
+                                                {variant.variation_type}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 align-middle text-xs">
+                                            <div>
                                                 <span
                                                     className={`inline-block rounded-md px-2 py-1 font-normal ${getClassificationColorClasses(variant.classification)}`}
                                                 >
@@ -241,55 +239,56 @@ export default function KnownVaraints({
                                                             className={`inline-flex items-center gap-1 rounded-md px-2 py-1 ${getClassificationColorClasses(variant.evo2Result.prediction)}`}
                                                         >
                                                             <Shield className="h-3 w-3" />
-                                                            <span>Evo2: {variant.evo2Result.prediction}</span>
+                                                            <span className="hidden lg:inline">Evo2:&nbsp;</span>
+                                                            <span>{variant.evo2Result.prediction}</span>
                                                         </span>
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="py-2 text-xs flex items-center justify-start">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    {variant.variation_type
-                                                        .toLowerCase()
-                                                        .includes("single nucleotide") ? (
-                                                        !variant.evo2Result ? (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="h-7 cursor-pointer border-[var(--color-border)] bg-[var(--color-muted)] px-3 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/80"
-                                                                disabled={variant.isAnalyzing}
-                                                                onClick={() => analyzeVariant(variant)}
-                                                            >
-                                                                {variant.isAnalyzing ? (
-                                                                    <>
-                                                                        <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-foreground)]"></span>
-                                                                        Analyzing...
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Zap className="mr-1 inline-block h-3 w-3" />
-                                                                        Analyze with Evo2
-                                                                    </>
-                                                                )}
-                                                            </Button>
-                                                        ) : (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="h-7 cursor-pointer border-green-200 bg-green-50 px-3 text-xs text-green-700 hover:bg-green-100"
-                                                                onClick={() => showComparison(variant)}
-                                                            >
-                                                                <BarChart2 className="mr-1 inline-block h-3 w-3" />
-                                                                Compare Results
-                                                            </Button>
-                                                        )
-                                                    ) : null}
-                                                </div>
+                                        </td>
+                                        <td className="p-4 align-middle">
+                                            <div className="flex flex-col items-start gap-1">
+                                                {variant.variation_type
+                                                    .toLowerCase()
+                                                    .includes("single nucleotide") ? (
+                                                    !variant.evo2Result ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 cursor-pointer border-[var(--color-border)] bg-[var(--color-muted)] px-3 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/80"
+                                                            disabled={variant.isAnalyzing}
+                                                            onClick={() => analyzeVariant(variant)}
+                                                        >
+                                                            {variant.isAnalyzing ? (
+                                                                <>
+                                                                    <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-foreground)]"></span>
+                                                                    <span className="hidden lg:inline">Analyzing...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Zap className="lg:mr-1 inline-block h-3 w-3" />
+                                                                    <span className="hidden lg:inline">Analyze with Evo2</span>
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 cursor-pointer border-green-200 bg-green-50 px-3 text-xs text-green-700 hover:bg-green-100"
+                                                            onClick={() => showComparison(variant)}
+                                                        >
+                                                            <BarChart2 className="lg:mr-1 inline-block h-3 w-3" />
+                                                            <span className="hidden lg:inline">Compare Results</span>
+                                                        </Button>
+                                                    )
+                                                ) : null}
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
 
