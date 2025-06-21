@@ -39,8 +39,8 @@ export function GeneInformation({
                         </div>
 
                         {geneBounds && (
-                            <div className="flex">
-                                <span className="w-28 min-28 text-xs text-[var(--color-foreground)]">Position:</span>
+                            <div className="grid grid-cols-[112px_1fr]">
+                                <span className="text-xs text-[var(--color-foreground)]">Position:</span>
                                 <span className="text-xs">
                                     {Math.min(geneBounds.min, geneBounds.max).toLocaleString()} -{" "}
                                     {Math.max(geneBounds.min, geneBounds.max).toLocaleString()}  (

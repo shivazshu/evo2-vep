@@ -281,112 +281,105 @@ export function GeneSequence( {
 
     return  <Card className="gap-0 border-none py-0 bg-white shadow-sm">
         <CardHeader className="pt-4 pb-2">
-            <CardTitle className="text-sm font-normal text-[var(--color-foreground)]/70">
-                Gene Sequence
+            <CardTitle className="flex flex-row items-center justify-between">
+                <div className="text-sm font-normal text-[var(--color-foreground)]/70">Gene Sequence</div>
             </CardTitle>
         </CardHeader>
 
         <CardContent className="pb-4">
             {geneBounds && (
                 <div className="mb-4 flex flex-col">
-                    <div className="mb-2 flex flex-col items-center justify-between text-xs sm:flex-row">
-                        <span className="flex items-center gap-1 text-[var(--color-foreground)]/70">
-                            <p className="sm:hidden">From: </p>
-                            <p>{Math.min(geneBounds.max, geneBounds.min).toLocaleString()}</p>
-                        </span>
-                        <span className="text-[var(--color-foreground)]/70">
-                            Selected: {parseInt(startPosition || "0", 10).toLocaleString()} -{" "}
-                            {parseInt(endPosition || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp) 
-                        </span>
-                        <span className="flex items-center gap-1 text-[var(--color-foreground)]/70">
-                            <p className="sm:hidden">To: </p>
-                            <p>{Math.max(geneBounds.max, geneBounds.min).toLocaleString()}</p>
-                        </span>
+                    <div className="mb-2 text-xs text-[var(--color-foreground)]/70">
+                        {/* Mobile view */}
+                        <div className="sm:hidden">
+                            <div className="flex w-full justify-between">
+                                <span>From: {Math.min(geneBounds.max, geneBounds.min).toLocaleString()}</span>
+                                <span>To: {Math.max(geneBounds.max, geneBounds.min).toLocaleString()}</span>
+                            </div>
+                            <div className="mt-1 text-center">
+                                Selected: {parseInt(startPosition || "0", 10).toLocaleString()} -{" "}
+                                {parseInt(endPosition || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp)
+                            </div>
+                        </div>
+
+                        {/* Desktop view */}
+                        <div className="hidden sm:flex sm:items-center sm:justify-between">
+                            <span>From: {Math.min(geneBounds.max, geneBounds.min).toLocaleString()}</span>
+                            <span>
+                                Selected: {parseInt(startPosition || "0", 10).toLocaleString()} -{" "}
+                                {parseInt(endPosition || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp)
+                            </span>
+                            <span>To: {Math.max(geneBounds.max, geneBounds.min).toLocaleString()}</span>
+                        </div>
                     </div>
 
                     {/* Slider Component */}
                     <div className="space-y-4">
-                        <div className="relative">
-                            <div 
-                            ref={sliderRef}
-                            className="relative h-6 w-full cursor-pointer mb-2">
-                                {/* Track Background */}
-                                <div className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-full bg-[var(--color-muted)] ">   
-                                    {/* Selected Range */}
-                                    <div 
-                                    className="absolute top-1/2 h-2 -translate-y-1/2 cursor-grab rounded-full bg-[var(--color-primary)] active:cursor-grabbing"
+                        <div className="relative mt-0 h-8">
+                            <div ref={sliderRef} className="absolute top-1/2 h-2 w-full -translate-y-1/2 rounded-full bg-[var(--color-muted)]">
+                                <div
+                                    className="absolute h-full cursor-grab rounded-full bg-[var(--color-primary)] active:cursor-grabbing"
                                     style={{
-                                        left: `${sliderValues.start}%`, 
-                                        width: `${sliderValues.end - sliderValues.start}%`
-                                        }}
+                                        left: `${sliderValues.start}%`,
+                                        right: `${100 - sliderValues.end}%`,
+                                    }}
                                     onMouseDown={handleRangeMouseDown}
-                                        >
-                                    </div>
-                                    {/* Start handle */}
-                                    <div 
-                                    className="absolute top-1/2 h-6 w-6 flex -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-[var(--color-primary)] bg-white shadow active:cursor-grabbing"
-                                    style={{
-                                        left: `${sliderValues.start}%`, 
-                                    }}
-                                    onMouseDown={(e) => handleMouseDown(e, "start")}>
-                                        <div className="h-3 w-1 rounded-full bg-[var(--color-primary)]">
-                                        </div>
-                                    </div>
-                                    {/* End  handle */}
-                                    <div 
-                                    className="absolute top-1/2 h-6 w-6 flex -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-[var(--color-primary)] bg-white shadow active:cursor-grabbing"
-                                    style={{
-                                        left: `${sliderValues.end}%`, 
-                                    }}
-                                    onMouseDown={(e) => handleMouseDown(e, "end")}>
-                                        <div className="h-3 w-1 rounded-full bg-[var(--color-primary)]">
-                                        </div>
-                                    </div>
-                                </div>
+                                />
                             </div>
+                            <div
+                                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-[var(--color-primary)] bg-white shadow transition-transform hover:scale-110"
+                                style={{ left: `${sliderValues.start}%` }}
+                                onMouseDown={(e) => handleMouseDown(e, "start")}
+                            />
+                            <div
+                                className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-[var(--color-primary)] bg-white shadow transition-transform hover:scale-110"
+                                style={{ left: `${sliderValues.end}%` }}
+                                onMouseDown={(e) => handleMouseDown(e, "end")}
+                            />
+                        </div>
 
-                            {/* Position Controls */}
-                            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs text-[var(--color-foreground)]/70">Start:</span>
-                                        <Input 
-                                        value={startPosition}
-                                        onChange={(e) => onStartPositionChange(e.target.value)}
+                        {/* Position Controls */}
+                        <div className="flex flex-col items-end gap-4 md:flex-row md:justify-between">
+                            <div className="grid w-full grid-cols-1 gap-2 md:w-auto md:grid-cols-2">
+                                <div className="grid gap-1.5">
+                                    <span className="text-xs font-medium text-[var(--color-foreground)]/80">Start</span>
+                                    <Input 
+                                    value={startPosition}
+                                    onChange={(e) => onStartPositionChange(e.target.value)}
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="h-8 w-full rounded-md border-[var(--color-border)] text-xs md:w-32"
+                                    />
+                                </div>
+                                <div className="grid gap-1.5">
+                                    <span className="text-xs font-medium text-[var(--color-foreground)]/80">End</span>
+                                    <Input 
+                                        value={endPosition}
+                                        onChange={(e) => onEndPositionChange(e.target.value)}
                                         type="text"
                                         inputMode="numeric"
                                         pattern="[0-9]*"
-                                        className="h-7 w-full border-[var(--color-border)] text-xs sm:w-28"
-                                        />
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        disabled={isLoading || isButtonLoading}
-                                        onClick={handleLoadSequenceClick}
-                                        className="h-7 w-full cursor-pointer bg-[var(--color-primary)] text-xs text-[var(--color-primary-foreground)] hover:bg-[var(--color-primary)]/90 sm:w-auto"
-                                        >
-                                            {isLoading || isButtonLoading ? (
-                                                <>
-                                                    <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                                                    Loading...
-                                                </>
-                                            ) : (
-                                                "Load Sequence"
-                                            )}
-                                        </Button>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-[var(--color-foreground)]/70">End:</span>
-                                            <Input 
-                                                value={endPosition}
-                                                onChange={(e) => onEndPositionChange(e.target.value)}
-                                                type="text"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                className="h-7 w-full border-[var(--color-border)] text-xs sm:w-28"
-                                            />
-                                        </div>
+                                        className="h-8 w-full rounded-md border-[var(--color-border)] text-xs md:w-32"
+                                    />
                                 </div>
+                            </div>
+                            <Button
+                                size="sm"
+                                disabled={isLoading || isButtonLoading}
+                                onClick={handleLoadSequenceClick}
+                                className="h-8 w-full cursor-pointer rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/60 px-6 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/90 md:w-auto"
+                                >
+                                    {isLoading || isButtonLoading ? (
+                                        <>
+                                            <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-foreground)]"></span>
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        "Load Sequence"
+                                    )}
+                                </Button>
                         </div>
-
                     </div>
                 </div>
             )}
@@ -399,7 +392,6 @@ export function GeneSequence( {
                     "Reverse Strand (3' <- 5')" ) : ( 
                     "Strand information is not available." )}
                 </span>
-                <span className="text-[var(--color-foreground)]/70">Maximum window range: {maxViewRange.toLocaleString()} bp</span>
             </div>
 
             {error && (
@@ -491,23 +483,26 @@ export function GeneSequence( {
                     Position: {hoverPosition.toLocaleString()}
                 </div>
             ) }
-
-            <div className="mt-3 flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                    <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-a)]"></div>
-                    <span className="text-xs text-[var(--color-foreground)]/70">A</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-t)]"></div>
-                    <span className="text-xs text-[var(--color-foreground)]/70">T</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-g)]"></div>
-                    <span className="text-xs text-[var(--color-foreground)]/70">G</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-c)]"></div>
-                    <span className="text-xs text-[var(--color-foreground)]/70">C</span>
+            
+            <div className="flex flex-row items-center justify-between">
+                <div className="text-[var(--color-foreground)]/70 text-xs">Maximum window range: {maxViewRange.toLocaleString()} bp</div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1">
+                        <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-a)]"></div>
+                        <span className="text-xs text-[var(--color-foreground)]/70">A</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-t)]"></div>
+                        <span className="text-xs text-[var(--color-foreground)]/70">T</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-g)]"></div>
+                        <span className="text-xs text-[var(--color-foreground)]/70">G</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-3 w-3 rounded-full bg-[var(--color-nucleotide-c)]"></div>
+                        <span className="text-xs text-[var(--color-foreground)]/70">C</span>
+                    </div>
                 </div>
             </div>
         </CardContent>
