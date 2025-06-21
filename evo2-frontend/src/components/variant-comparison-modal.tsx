@@ -23,7 +23,7 @@ export function VariantComparisonModal({
             <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto">
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle>Variant Analysis Comparison</CardTitle>
+                        <CardTitle className="text-lg font-medium text-[var(--color-foreground)]/80">Variant Analysis Comparison</CardTitle>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -89,7 +89,7 @@ export function VariantComparisonModal({
                     </div>
                     
                     <div>
-                        <h4 className="mb-3 font-medium text-sm">
+                        <h4 className="mb-3 font-medium text-sm text-[var(--color-foreground)]/80">
                             Analysis Comparison 
                         </h4>
                         <div className="grid gap-2 md:grid-cols-2">

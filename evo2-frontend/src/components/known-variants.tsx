@@ -195,7 +195,7 @@ export default function KnownVaraints({
                                 {clinvarVariants.map((variant) => (
                                     <tr
                                         key={variant.clinvar_id}
-                                        className="border-b border-[var(--color-border)] bg-[var(--color-card)] hover:bg-[var(--color-muted)]/50"
+                                        className="border-b border-[var(--color-border)] bg-[var(--color-card)] hover:bg-[var(--color-muted)]/30"
                                     >
                                         <td className="p-4 align-middle">
                                             <div className="text-xs font-medium text-[var(--color-foreground)] break-words">
@@ -254,6 +254,7 @@ export default function KnownVaraints({
                                                     !variant.evo2Result ? (
                                                         <Button
                                                             size="sm"
+                                                            variant="outline"
                                                             onClick={() => analyzeVariant(variant)}
                                                             disabled={variant.isAnalyzing}
                                                             className="h-7 cursor-pointer border-[var(--color-border)] bg-[var(--color-muted)] px-3 text-xs text-[var(--color-foreground)] hover:bg-[var(--color-muted)]/80"
@@ -273,6 +274,7 @@ export default function KnownVaraints({
                                                     ) : (
                                                         <Button
                                                             size="sm"
+                                                            variant="outline"
                                                             className="h-7 cursor-pointer border-[var(--color-success)]/50 bg-[var(--color-success)]/10 px-3 text-xs text-[var(--color-success)] hover:bg-[var(--color-success)]/20"
                                                             onClick={() => showComparison(variant)}
                                                         >
