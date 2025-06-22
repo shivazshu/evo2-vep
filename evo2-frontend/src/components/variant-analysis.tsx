@@ -112,13 +112,11 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             return variantPos === position;
         });
 
-        let referenceNucleotide = ref;
         let alternativeNucleotide = alt;
 
         if (matchingVariant) {
             const refAltMatch = /:c\.[\d-]+(\w)>(\w)$/.exec(matchingVariant.title);
             if (refAltMatch?.[1] && refAltMatch?.[2]) {
-                referenceNucleotide = refAltMatch[1];
                 alternativeNucleotide = refAltMatch[2];
             }
         }
@@ -127,16 +125,19 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
             setVariantError("Invalid alternative nucleotide from ClinVar record.");
             return;
         }
+        
+        const isNegativeStrand = geneDetails?.genomicinfo?.[0]?.strand === '-';
+        const finalAlternative = isNegativeStrand
+            ? reverseComplement(alternativeNucleotide)
+            : alternativeNucleotide;
 
-        // Note: We do not complement the nucleotide even on negative strand
-        // because variant notation is always relative to the positive strand
         setIsAnalyzing(true);
         setVariantError(null);
 
         try {
             const data = await analyzeVariantWithAPI({
                 position,
-                alternative: alternativeNucleotide,
+                alternative: finalAlternative,
                 genomeId,
                 chromosome,
             });
