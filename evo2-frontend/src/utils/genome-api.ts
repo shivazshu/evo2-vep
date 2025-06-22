@@ -1,4 +1,3 @@
-import { env } from "../env";
 import { 
     APIError, 
     RateLimitError, 
@@ -996,25 +995,29 @@ export async function analyzeVariantWithAPI({
     genomeId: string;
     chromosome: string;
 }) : Promise<AnalysisResult> {
-    const queryParams = new URLSearchParams({
-        variant_pos: position.toString(), 
+    // Use the proxy route instead of directly calling the Modal backend
+    const proxyUrl = '/api/proxy/modal';
+    
+    const requestBody = {
+        variant_pos: position,
         alternative: alternative,
         genome: genomeId,
         chromosome: chromosome,
-    });
-
-    const url = `${env.NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL}?${queryParams.toString()}`;
+    };
 
     try {
-    const response = await fetch(url, {
-        method: "POST", 
-    });
+        const response = await fetch(proxyUrl, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", errorText);
-        throw new Error(`Failed to analyze variant: ${errorText}`);
-    }
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to analyze variant: ${errorText}`);
+        }
 
         return await response.json() as AnalysisResult;
     } catch (error) {

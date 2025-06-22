@@ -8,6 +8,7 @@ export const env = createEnv({
    */
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
+    MODAL_ANALYZE_VARIANT_BASE_URL: z.string().url(),
   },
 
   /**
@@ -17,7 +18,7 @@ export const env = createEnv({
    */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
-    NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL: z.string().url(),
+    // Removed NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL to prevent exposing backend URL
   },
 
   /**
@@ -26,7 +27,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL: process.env.NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL,
+    MODAL_ANALYZE_VARIANT_BASE_URL: process.env.MODAL_ANALYZE_VARIANT_BASE_URL,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

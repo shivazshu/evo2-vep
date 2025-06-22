@@ -553,7 +553,7 @@ const VariantAnalysis = forwardRef<VariantAnalysisHandle, VariantAnalysisProps>(
                                                 <div 
                                                     className={`inline-block rounded-lg mt-1.5 mb-3 px-3 py-2 text-xs ${getClassificationColorClasses(result.prediction)}`}
                                                 >{result.prediction}</div>
-                                                <div className="text-xs font-medium text-[var(--color-foreground)]">Confidence</div>
+                                                <div className="text-xs font-medium text-[var(--color-foreground)]/70">Confidence</div>
                                                 <div className="mt-1 h-2 w-full rounded-full bg-muted">
                                                     <div  
                                                         className={`h-2 rounded-full ${result.prediction.includes("pathogenic") ? "bg-[var(--color-pathogenic)]" : "bg-[var(--color-benign)]"}`}
