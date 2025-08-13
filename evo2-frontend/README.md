@@ -24,7 +24,7 @@ npm install
 ### Environment
 Create `.env.local`:
 ```env
-NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL=your_evo2_api_url
+MODAL_ANALYZE_VARIANT_BASE_URL=your_evo2_api_url
 ```
 
 ### Development

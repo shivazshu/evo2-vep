@@ -33,7 +33,7 @@ cd evo2-frontend
 npm install
 npm run dev
 ```
-Set `NEXT_PUBLIC_ANALYZE_VARIANT_BASE_URL` in `.env.local` to your backend endpoint.
+Set `MODAL_ANALYZE_VARIANT_BASE_URL` in `.env.local` to your backend endpoint.
 
 ## Tech Stack
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
