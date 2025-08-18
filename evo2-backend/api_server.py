@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
@@ -7,6 +7,7 @@ from pydantic import BaseModel
 import uvicorn
 from fastapi.responses import Response
 import os
+import time
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -321,10 +322,36 @@ async def proxy_ucsc_endpoint(
         logger.error(f"Error in UCSC proxy: {e}")
         raise HTTPException(status_code=500, detail="Failed to proxy UCSC request")
 
+# Simple rate limiting for Modal endpoint (in-memory store)
+modal_rate_limit = {}
+MODAL_RATE_LIMIT_REQUESTS = 10  # requests per minute per IP
+MODAL_RATE_LIMIT_WINDOW = 60  # seconds
+
 @app.post("/proxy/modal")
-async def proxy_modal_endpoint(request_body: dict):
-    """Proxy Modal API requests for variant analysis"""
+async def proxy_modal_endpoint(request_body: dict, request: Request):
+    """Proxy Modal API requests for variant analysis with rate limiting"""
     try:
+        # Rate limiting for Modal endpoint to protect GPU resources
+        client_ip = request.client.host
+        current_time = time.time()
+        
+        # Clean old entries
+        modal_rate_limit[client_ip] = [
+            timestamp for timestamp in modal_rate_limit.get(client_ip, [])
+            if current_time - timestamp < MODAL_RATE_LIMIT_WINDOW
+        ]
+        
+        # Check rate limit
+        if len(modal_rate_limit.get(client_ip, [])) >= MODAL_RATE_LIMIT_REQUESTS:
+            raise HTTPException(
+                status_code=429, 
+                detail=f"Rate limit exceeded. Maximum {MODAL_RATE_LIMIT_REQUESTS} requests per minute."
+            )
+        
+        # Add current request timestamp
+        if client_ip not in modal_rate_limit:
+            modal_rate_limit[client_ip] = []
+        modal_rate_limit[client_ip].append(current_time)
         result = await proxy_apis.proxy_modal_endpoint(request_body)
         
         # Handle the new return format (data, status_code)
