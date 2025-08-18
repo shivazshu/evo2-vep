@@ -7,7 +7,7 @@ import {
     type GeneBounds, 
     type GeneDetailsFromSearch, 
     type GeneFromSearch, 
-    type ClinvarVariants} from "../utils/genome-api";
+    type ClinvarVariants} from "../utils/redis-genome-api";
 import { Button } from "./ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -132,8 +132,9 @@ export default function GeneViewer({
         }, []);
 
         const handleLoadSequence = useCallback(() => {
-            const start = parseInt(startPosition);
-            const end = parseInt(endPosition);
+            // Parse positions, removing commas and spaces first
+            const start = parseInt(startPosition.replace(/[, ]/g, ''));
+            const end = parseInt(endPosition.replace(/[, ]/g, ''));
 
             let validationError: string | null = null;
 

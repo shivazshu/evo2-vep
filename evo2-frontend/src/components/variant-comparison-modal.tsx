@@ -1,4 +1,4 @@
-import type { ClinvarVariants } from "../utils/genome-api";
+import type { ClinvarVariants } from "../utils/redis-genome-api";
 import { Button } from "./ui/button";
 import { Check, ExternalLink, Shield, X } from "lucide-react";
 import { getClassificationColorClasses, getNucleotideColorClass } from "../utils/coloring-utils";

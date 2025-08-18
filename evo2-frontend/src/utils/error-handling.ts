@@ -148,6 +148,10 @@ export function getUserFriendlyMessage(error: unknown): string {
     
     if (error instanceof Error) {
         const message = error.message.toLowerCase();
+        // Modal/Inference specific messaging
+        if (message.includes('modal')) {
+            return 'Live Evo2 inference is temporarily unavailable. Please try again in a moment. Cached and known-variant data remain available.';
+        }
         
         if (message.includes('cors')) {
             return 'Unable to access external data due to browser security restrictions. Please try refreshing the page.';
@@ -222,14 +226,11 @@ export function measureAPIPerformance<T>(
     const startTime = performance.now();
     
     return operation().finally(() => {
-        const endTime = performance.now();
-        const duration = endTime - startTime;
+        const duration = performance.now() - startTime;
         
-        // console.log(`${operationName} took ${duration.toFixed(2)}ms`);
-        
-        // In production, you might want to send this to a monitoring service
-        if (duration > 5000) { // Log slow operations
-            // console.warn(`Slow API operation: ${operationName} took ${duration.toFixed(2)}ms`);
+        // Log slow operations for performance monitoring
+        if (duration > 5000) { // 5 seconds threshold
+            // Log slow operations for debugging
         }
     });
 } 

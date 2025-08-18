@@ -1,6 +1,18 @@
+# Core dependencies for API server
+fastapi[standard]
+uvicorn[standard]
+python-dotenv
+redis
+requests
+pydantic
+
+# For Modal inference server
 modal
 matplotlib 
 pandas 
 seaborn 
 scikit-learn 
 openpyxl
+
+# Additional utilities
+biopython

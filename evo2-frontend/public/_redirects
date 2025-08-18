@@ -1,0 +1,6 @@
+# API routes for backend services
+/api/proxy/modal/* https://your-modal-app.modal.run/:splat 200
+/api/* https://your-render-api.onrender.com/api/:splat 200
+
+# SPA fallback for client-side routing
+/* /index.html 200

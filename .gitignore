@@ -1,218 +1,28 @@
+# General
+.DS_Store
+*.log
+
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+*.pyc
+*.pyo
+*.pyd
 .env
 .venv
-env/
 venv/
-ENV/
-env.bak/
-venv.bak/
-.pytest_cache/
-.coverage
-htmlcov/
 
-# Modal
-.modal/
-
-# Node/Next.js
+# Node
 node_modules/
 .next/
 out/
-build/
-.DS_Store
-*.pem
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.vercel
-.turbo
 
-# TypeScript
+# TypeScript/Next
 *.tsbuildinfo
-next-env.d.ts
 
-# Testing
-coverage/
-.nyc_output/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*.sublime-workspace
-*.sublime-project
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Cache
-.cache/
-.parcel-cache/
-.npm
-.eslintcache
-.stylelintcache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
+# Local env
+*.local
+.env.local
+.env.*.local
 
 # Misc
-.env*.local
-.vercel
-.turbo
-
-# macOS system files
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Windows system files
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-*.stackdump
-[Dd]esktop.ini
-$RECYCLE.BIN/
-*.cab
-*.msi
-*.msm
-*.msp
-*.lnk
-
-# Linux system files
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
-
-# Log files
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-.pnpm-debug.log*
-.yarn-integrity
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
-*.swn
-*.bak
-*.orig
-*.rej
-*.patch
-*.diff
-
-# Editor directories and files
-.idea/
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.sublime-workspace
-*.sublime-project
-.project
-.classpath
-.settings/
-*.sublime-workspace
-.history/
-
-# Frontend (evo2-frontend - Next.js)
-evo2-frontend/node_modules/
-evo2-frontend/.next/
-evo2-frontend/out/
-evo2-frontend/build/
-evo2-frontend/.env*.local
-evo2-frontend/*.tsbuildinfo
-evo2-frontend/next-env.d.ts
-evo2-frontend/.vercel
-evo2-frontend/.turbo
-evo2-frontend/coverage/
-evo2-frontend/.nyc_output/
-evo2-frontend/.cache/
-evo2-frontend/.npm
-evo2-frontend/.eslintcache
-evo2-frontend/.stylelintcache
-evo2-frontend/.rpt2_cache/
-evo2-frontend/.rts2_cache_*/
-evo2-frontend/.pnpm-store/
-evo2-frontend/.yarn/
-evo2-frontend/.pnp.*
-evo2-frontend/.yarn-integrity
-
-# Backend (evo2-backend - Python/Modal)
-evo2-backend/__pycache__/
-evo2-backend/*.py[cod]
-evo2-backend/.venv/
-evo2-backend/venv/
-evo2-backend/env/
-evo2-backend/*.env
-evo2-backend/.env
-evo2-backend/.modal/
-evo2-backend/build/
-evo2-backend/dist/
-evo2-backend/*.egg-info/
-evo2-backend/.pytest_cache/
-evo2-backend/.coverage
-evo2-backend/htmlcov/
-evo2-backend/.installed.cfg
-evo2-backend/*.egg
-evo2-backend/.tox/
-evo2-backend/.nox/
-evo2-backend/.hypothesis/
-evo2-backend/cover/
-evo2-backend/.coverage.*
-evo2-backend/coverage.xml
-evo2-backend/*.cover
-evo2-backend/.mypy_cache/
-evo2-backend/.dmypy.json
-evo2-backend/.pyre/
-evo2-backend/.pytype/
-evo2-backend/cython_debug/
-# Local Netlify folder
-.netlify
+coverage/

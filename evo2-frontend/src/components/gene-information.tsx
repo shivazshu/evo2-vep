@@ -1,4 +1,4 @@
-import type { GeneBounds, GeneDetailsFromSearch, GeneFromSearch } from "../utils/genome-api";
+import type { GeneBounds, GeneDetailsFromSearch, GeneFromSearch } from "../utils/redis-genome-api";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { ExternalLink } from "lucide-react";
 

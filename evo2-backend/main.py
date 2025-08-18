@@ -240,7 +240,7 @@ def analyze_variant(relative_pos_in_window, reference, alternative, window_seq, 
     }
         
 
-def get_genome_seq(position, genome: str, chromosome: str, window_size: 8192):
+def get_genome_seq(position, genome: str, chromosome: str, window_size: 8192, strand: str = "+"):
     import requests
      
     half_window = window_size // 2
@@ -249,6 +249,7 @@ def get_genome_seq(position, genome: str, chromosome: str, window_size: 8192):
 
     print(f"Fetching {window_size}bp around position {position} from UCSC API..")
     print(f"Coordinates: {start} - {end}  {genome}")
+    print(f"Strand: {strand}")
 
     api_url = f"https://api.genome.ucsc.edu/getData/sequence?genome={genome};chrom={chromosome};start={start};end={end}"
 
@@ -269,7 +270,15 @@ def get_genome_seq(position, genome: str, chromosome: str, window_size: 8192):
         print(f"Warning: Received {len(sequence)}, expected: {expected_length}")
 
     print(f"Loaded reference genome sequence of window length: {len(sequence)} bases")
-
+    
+    # Handle negative strand genes by reverse complementing the sequence
+    if strand == "-":
+        print("Gene is on negative strand, reverse complementing sequence...")
+        # Reverse complement the sequence
+        complement = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G'}
+        sequence = ''.join(complement[base] for base in sequence)[::-1]
+        print(f"Reverse complemented sequence, first 100: {sequence[:100]}")
+    
     return sequence, start
 
 
@@ -284,11 +293,12 @@ class Evo2Model:
 
     # @modal.method()
     @modal.fastapi_endpoint(method="POST")
-    def analyze_single_variant(self, variant_pos: int, alternative: str, genome: str, chromosome: str):
+    def analyze_single_variant(self, variant_pos: int, alternative: str, genome: str, chromosome: str, strand: str = "+"):
         print("Genome: ", genome)
         print("Chromosome: ", chromosome)
         print("Variant position: ", variant_pos)
         print("Variant alternative : ", alternative)
+        print("Strand: ", strand)
         
         WINDOW_SIZE = 8192
 
@@ -296,7 +306,8 @@ class Evo2Model:
             position=variant_pos,
             genome=genome,
             chromosome=chromosome,
-            window_size=WINDOW_SIZE
+            window_size=WINDOW_SIZE,
+            strand=strand
         )
 
         print(f"Fetched genome sequence window, first 100: {window_seq[:100]}")
@@ -310,7 +321,6 @@ class Evo2Model:
         reference = window_seq[relative_pos]
         print(f"Reference is: {reference}")
 
-
         result = analyze_variant(
             relative_pos_in_window=relative_pos,
             reference= reference,
@@ -320,6 +330,8 @@ class Evo2Model:
         )
 
         result["position"] = variant_pos
+        result["strand"] = strand
+        result["reference"] = reference
 
         return result
 

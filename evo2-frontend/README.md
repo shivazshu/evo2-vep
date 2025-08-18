@@ -10,35 +10,55 @@ A Next.js frontend for genomic variant analysis using the Evo2 deep learning mod
 - ⚡ Multi-layer caching and rate limiting
 - 🎨 Modern UI with Tailwind CSS and Radix UI
 
-## Quick Start
+## Deployment
 
-### Prerequisites
+### Netlify Deployment
+This frontend is designed to be deployed on **Netlify**:
+
+1. **Build Settings**:
+   - Build Command: `npm run build`
+   - Publish Directory: `out`
+   - Node Version: 18+
+
+2. **Environment Variables**:
+   ```env
+   NEXT_PUBLIC_API_BASE_URL=https://your-render-api.onrender.com
+   NEXT_PUBLIC_MODAL_ENDPOINT=/api/proxy/modal
+   NEXT_PUBLIC_API_TIMEOUT=30000
+   NEXT_PUBLIC_REDIS_CACHE_ENABLED=true
+   ```
+
+3. **Deploy**:
+   - Connect your GitHub repository to Netlify
+   - Set build settings and environment variables
+   - Deploy automatically on git push
+
+### Local Development
+
+#### Prerequisites
 - Node.js 18+
 - npm
 
-### Setup
+#### Setup
 ```bash
 npm install
+cp env.local.example .env.local
+# Edit .env.local with your API endpoints
 ```
 
-### Environment
-Create `.env.local`:
-```env
-MODAL_ANALYZE_VARIANT_BASE_URL=your_evo2_api_url
-```
-
-### Development
+#### Development Server
 ```bash
 npm run dev
 ```
 
-### Production
+#### Production Build
 ```bash
 npm run build
 npm start
 ```
 
 ## Tech Stack
+
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
@@ -46,6 +66,7 @@ npm start
 - **State**: Custom React hooks
 
 ## Project Structure
+
 ```
 src/
 ├── app/                 # Next.js pages and API routes
@@ -66,9 +87,32 @@ src/
 
 ## API Integration
 
-- **UCSC Genome Browser**: Genome assemblies and sequences
-- **NCBI E-utilities**: Gene information and ClinVar data
-- **Evo2 Backend**: Variant analysis predictions
+The frontend integrates with multiple backend services:
+
+- **Render API Backend**: Redis-cached genome data (UCSC, NCBI)
+  - Genome assemblies and sequences
+  - Gene information and ClinVar data
+  - Multi-layer caching for performance
+- **Modal Inference Backend**: GPU-accelerated Evo2 predictions
+  - Variant pathogenicity analysis
+  - H100 GPU processing
+  - Serverless scaling
+
+## Architecture
+
+```
+Frontend (Netlify) 
+    ↓
+Render API Backend (Redis Cache)
+    ↓
+External APIs (UCSC, NCBI)
+
+Frontend (Netlify)
+    ↓  
+Modal Backend (GPU Inference)
+    ↓
+Evo2 Model (H100 GPU)
+```
 
 ## Development
 
@@ -76,8 +120,36 @@ src/
 npm run lint          # Lint code
 npm run typecheck     # Type checking
 npm run format:write  # Format code
+npm run preview       # Test production build locally
 ```
+
+## Environment Configuration
+
+### Production (Netlify)
+```env
+NEXT_PUBLIC_API_BASE_URL=https://your-render-api.onrender.com
+NEXT_PUBLIC_MODAL_ENDPOINT=/api/proxy/modal
+NEXT_PUBLIC_API_TIMEOUT=30000
+NEXT_PUBLIC_REDIS_CACHE_ENABLED=true
+NEXT_PUBLIC_DEBUG_MODE=false
+```
+
+### Development (Local)
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_MODAL_ENDPOINT=/api/proxy/modal
+NEXT_PUBLIC_API_TIMEOUT=30000
+NEXT_PUBLIC_REDIS_CACHE_ENABLED=true
+NEXT_PUBLIC_DEBUG_MODE=true
+```
+
+## Deployment Notes
+
+- **Static Export**: Configured for Netlify deployment with `next.config.js`
+- **Image Optimization**: Disabled for static export compatibility
+- **TypeScript**: Build errors ignored for deployment flexibility
+- **Netlify Plugin**: `@netlify/plugin-nextjs` included for optimal performance
 
 ## License
 
-MIT License 
+MIT License

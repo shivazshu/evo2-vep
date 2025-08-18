@@ -7,7 +7,7 @@ import {
     type GeneDetailsFromSearch, 
     type GeneFromSearch, 
     type ClinvarVariants 
-} from "../utils/genome-api";
+} from "../utils/redis-genome-api";
 import { useErrorHandler } from "./use-error-handler";
 
 interface UseGeneDataOptions {

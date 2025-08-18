@@ -29,7 +29,7 @@ import {
   type GenomeAssemblyFromSearch,
   type ChromosomeFromSearch,
   type GeneFromSearch,
-} from "../utils/genome-api";
+} from "../utils/redis-genome-api";
 
 type Mode = "browse" | "search";
 

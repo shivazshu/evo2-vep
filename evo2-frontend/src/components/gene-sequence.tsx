@@ -1,12 +1,12 @@
 "use client "
 
-import type { GeneBounds, GeneDetailsFromSearch } from "../utils/genome-api"
+import type { GeneBounds, GeneDetailsFromSearch } from "../utils/redis-genome-api"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { getNucleotideColorClass } from "../utils/coloring-utils";
-import { clearCache, clearRateLimitCache } from "../utils/genome-api";
+import { clearCache, clearRateLimitCache } from "../utils/redis-genome-api";
 import { useQueueStatus } from "../hooks/use-queue-status";
 
 export function GeneSequence( {
@@ -53,8 +53,8 @@ export function GeneSequence( {
     const [isButtonLoading, setIsButtonLoading] = useState(false);
 
     // Use custom hook for queue status
-    const start = parseInt(startPosition);
-    const end = parseInt(endPosition);
+    const start = parseInt(startPosition.replace(/[, ]/g, ''));
+    const end = parseInt(endPosition.replace(/[, ]/g, ''));
     const { ncbiQueueStatus, ucscQueueStatus, isCurrentRegionQueuedOrProcessing } = useQueueStatus({
         ncbiMeta: gene.chrom && genomeId && !isNaN(start) && !isNaN(end) 
             ? { chrom: gene.chrom, genomeId, start, end }
@@ -65,8 +65,8 @@ export function GeneSequence( {
     });
 
     const currentRangeSize = useMemo(() => {
-        const start = parseInt(startPosition);
-        const end = parseInt(endPosition);
+        const start = parseInt(startPosition.replace(/[, ]/g, ''));
+        const end = parseInt(endPosition.replace(/[, ]/g, ''));
 
         return isNaN(start) || isNaN(end) || end < start ? 0 : end - start + 1;
     }, [startPosition, endPosition])
@@ -78,8 +78,8 @@ export function GeneSequence( {
         const maxBound = Math.max(geneBounds.min, geneBounds.max);
         const totalSize = maxBound - minBound;
         
-        const startNum = parseInt(startPosition);
-        const endNum = parseInt(endPosition);
+        const startNum = parseInt(startPosition.replace(/[, ]/g, ''));
+        const endNum = parseInt(endPosition.replace(/[, ]/g, ''));
 
         if (isNaN(startNum) || isNaN(endNum) || totalSize <= 0) {
             setSliderValues({start: 0, end: 100});
@@ -114,8 +114,8 @@ export function GeneSequence( {
             const geneSize = maxBound - minBound;
 
             const newPosition = Math.round(minBound + (geneSize * newPercent) / 100);
-            const currentStartNum = parseInt(startPosition);
-            const currentEndNum = parseInt(endPosition);
+            const currentStartNum = parseInt(startPosition.replace(/[, ]/g, ''));
+            const currentEndNum = parseInt(endPosition.replace(/[, ]/g, ''));
 
             if (isDraggingStart) {
                 if (!isNaN(currentEndNum)) {
@@ -202,8 +202,8 @@ export function GeneSequence( {
 
         if (!sliderRef.current) return;
 
-        const startNum = parseInt(startPosition);
-        const endNum = parseInt(endPosition);
+        const startNum = parseInt(startPosition.replace(/[, ]/g, ''));
+        const endNum = parseInt(endPosition.replace(/[, ]/g, ''));
 
         if (isNaN(startNum) || isNaN(endNum)) return;
 
@@ -297,8 +297,8 @@ export function GeneSequence( {
                                 <span>To: {Math.max(geneBounds.max, geneBounds.min).toLocaleString()}</span>
                             </div>
                             <div className="mt-1 text-center">
-                                Selected: {parseInt(startPosition || "0", 10).toLocaleString()} -{" "}
-                                {parseInt(endPosition || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp)
+                                Selected: {parseInt(startPosition.replace(/[, ]/g, '') || "0", 10).toLocaleString()} -{" "}
+                                {parseInt(endPosition.replace(/[, ]/g, '') || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp)
                             </div>
                         </div>
 
@@ -306,8 +306,8 @@ export function GeneSequence( {
                         <div className="hidden sm:flex sm:items-center sm:justify-between">
                             <span>From: {Math.min(geneBounds.max, geneBounds.min).toLocaleString()}</span>
                             <span>
-                                Selected: {parseInt(startPosition || "0", 10).toLocaleString()} -{" "}
-                                {parseInt(endPosition || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp)
+                                Selected: {parseInt(startPosition.replace(/[, ]/g, '') || "0", 10).toLocaleString()} -{" "}
+                                {parseInt(endPosition.replace(/[, ]/g, '') || "0").toLocaleString()} – ({currentRangeSize.toLocaleString()} bp)
                             </span>
                             <span>To: {Math.max(geneBounds.max, geneBounds.min).toLocaleString()}</span>
                         </div>
@@ -447,8 +447,8 @@ export function GeneSequence( {
                                         size="sm"
                                         variant="outline"
                                         onClick={() => {
-                                            clearRateLimitCache();
-                                            clearCache();
+                                            void clearRateLimitCache();
+                                            void clearCache();
                                             window.location.reload();
                                         }}
                                         className="h-6 text-xs"

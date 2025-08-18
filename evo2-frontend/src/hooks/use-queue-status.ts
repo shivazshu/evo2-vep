@@ -1,5 +1,23 @@
 import { useEffect, useState, useRef } from "react";
-import { getNcbiQueueStatus, getUcscQueueStatus, type QueuedRequest, type NcbiQueueMeta, type UcscQueueMeta } from "../utils/genome-api";
+import { getNcbiQueueStatus, getUcscQueueStatus } from "../utils/redis-genome-api";
+
+// Define types locally to avoid import issues
+interface QueuedRequest<T> {
+    meta?: T;
+}
+
+interface NcbiQueueMeta {
+    geneId?: string;
+    chrom?: string;
+    genomeId?: string;
+    start?: number;
+    end?: number;
+}
+
+interface UcscQueueMeta {
+    chrom?: string;
+    genomeId?: string;
+}
 
 interface QueueStatus {
     queueLength: number;
@@ -25,8 +43,8 @@ export function useQueueStatus({
     const [ucscQueueStatus, setUcscQueueStatus] = useState<Omit<QueueStatus, 'queue' | 'processingRequest'> | null>(null);
     
     // Use refs to store the latest meta objects to avoid dependency issues
-    const ncbiMetaRef = useRef(ncbiMeta);
-    const ucscMetaRef = useRef(ucscMeta);
+    const ncbiMetaRef = useRef<NcbiQueueMeta | undefined>(ncbiMeta);
+    const ucscMetaRef = useRef<UcscQueueMeta | undefined>(ucscMeta);
     
     // Update refs when meta objects change
     ncbiMetaRef.current = ncbiMeta;
@@ -34,8 +52,8 @@ export function useQueueStatus({
 
     useEffect(() => {
         const checkQueueStatus = () => {
-            setNcbiQueueStatus(getNcbiQueueStatus(ncbiMetaRef.current));
-            setUcscQueueStatus(getUcscQueueStatus(ucscMetaRef.current ?? undefined));
+            setNcbiQueueStatus(getNcbiQueueStatus(ncbiMetaRef.current) as QueueStatus);
+            setUcscQueueStatus(getUcscQueueStatus(ucscMetaRef.current) as Omit<QueueStatus, 'queue' | 'processingRequest'>);
         };
 
         checkQueueStatus();
@@ -47,17 +65,19 @@ export function useQueueStatus({
     const isCurrentRegionQueuedOrProcessing = (() => {
         if (!ncbiQueueStatus || !ncbiMetaRef.current) return false;
         
-        const { chrom, genomeId, start, end } = ncbiMetaRef.current;
-        if (!chrom || !genomeId || start === undefined || end === undefined) return false;
+        const meta = ncbiMetaRef.current;
+        if (!meta.chrom || !meta.genomeId || meta.start === undefined || meta.end === undefined) return false;
         
         const queue = ncbiQueueStatus.queue ?? [];
         const processingRequest = ncbiQueueStatus.processingRequest;
         
-        const matches = (req: QueuedRequest<unknown>) =>
-            req?.meta?.chrom === chrom &&
-            req?.meta?.genomeId === genomeId &&
-            req?.meta?.start === start &&
-            req?.meta?.end === end;
+        const matches = (req: QueuedRequest<unknown>) => {
+            const reqMeta = req?.meta as NcbiQueueMeta | undefined;
+            return reqMeta?.chrom === meta.chrom &&
+                   reqMeta?.genomeId === meta.genomeId &&
+                   reqMeta?.start === meta.start &&
+                   reqMeta?.end === meta.end;
+        };
             
         return (
             queue.some(matches) || (processingRequest && matches(processingRequest))

@@ -1,6 +1,6 @@
 "use client"
 
-import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch, clearCache, clearRateLimitCache } from "../utils/genome-api"
+import { analyzeVariantWithAPI, type ClinvarVariants, type GeneFromSearch, clearCache, clearRateLimitCache } from "../utils/redis-genome-api"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button";
 import { BarChart2, ExternalLink, RefreshCw, Shield, Zap } from "lucide-react";
@@ -141,8 +141,8 @@ export default function KnownVaraints({
                                     size="sm"
                                     variant="outline"
                                     onClick={() => {
-                                        clearRateLimitCache();
-                                        clearCache();
+                                        void clearRateLimitCache();
+                                        void clearCache();
                                         window.location.reload();
                                     }}
                                     className="h-6 text-xs"
