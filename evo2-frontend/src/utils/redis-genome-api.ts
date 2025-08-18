@@ -99,12 +99,21 @@ export interface UcscQueueMeta {
 
 // Configuration
 const API_CONFIG = {
-    BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000',
-    MODAL_ENDPOINT: (process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000') + '/proxy/modal',
+    BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://evo2-vep.onrender.com',
+    MODAL_ENDPOINT: (process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://evo2-vep.onrender.com') + '/proxy/modal',
     TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT ?? '30000'),
     RETRY_ATTEMPTS: parseInt(process.env.NEXT_PUBLIC_API_RETRY_ATTEMPTS ?? '3'),
     BASE_DELAY: 1500,
 } as const;
+
+// Debug logging for production
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    console.log('API Config:', {
+        BASE_URL: API_CONFIG.BASE_URL,
+        MODAL_ENDPOINT: API_CONFIG.MODAL_ENDPOINT,
+        ENV_VAR: process.env.NEXT_PUBLIC_API_BASE_URL
+    });
+}
 
 // Feature flags
 const FEATURES = {
