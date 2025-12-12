@@ -12,9 +12,7 @@ const nextConfig = {
     typescript: {
       ignoreBuildErrors: true,
     },
-    eslint: {
-      ignoreDuringBuilds: true,
-    },
+    // Note: eslint configuration moved to eslint.config.js in Next.js 16
 }
 
 export default nextConfig
