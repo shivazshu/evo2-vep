@@ -3,18 +3,66 @@ import json
 import os
 import ssl
 from typing import Optional, Any, Union
-from datetime import timedelta
+from datetime import timedelta, datetime
 import logging
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# In-memory cache as fallback when Redis is unavailable
+class InMemoryCache:
+    def __init__(self):
+        self._cache = {}
+        self._lock = threading.RLock()
+    
+    def get(self, key: str) -> Optional[Any]:
+        with self._lock:
+            if key in self._cache:
+                value, expiry = self._cache[key]
+                if datetime.now() < expiry:
+                    return value
+                else:
+                    del self._cache[key]
+            return None
+    
+    def set(self, key: str, value: Any, ttl_seconds: int) -> bool:
+        with self._lock:
+            expiry = datetime.now() + timedelta(seconds=ttl_seconds)
+            self._cache[key] = (value, expiry)
+            return True
+    
+    def delete(self, key: str) -> bool:
+        with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+                return True
+            return False
+    
+    def clear_pattern(self, pattern: str) -> int:
+        with self._lock:
+            # Simple pattern matching for fallback
+            keys_to_delete = [k for k in self._cache.keys() if pattern.replace('*', '') in k]
+            for key in keys_to_delete:
+                del self._cache[key]
+            return len(keys_to_delete)
+    
+    def get_stats(self) -> dict:
+        with self._lock:
+            return {
+                "connected": True,
+                "type": "in_memory_fallback",
+                "total_keys": len(self._cache),
+                "memory_usage": "N/A"
+            }
 
 class RedisCacheManager:
     def __init__(self):
         """Initialize Redis cache manager with connection pooling and cloud support"""
         self.redis_url = None
         self.redis_client = None
+        self.fallback_cache = InMemoryCache()
         self.cloud_provider = None
         self.ssl_enabled = None
         self.ssl_verify = None
@@ -22,10 +70,15 @@ class RedisCacheManager:
         self.connection_timeout = None
         self.socket_timeout = None
         self._initialized = False
+        self._use_fallback = False
     
     def _ensure_initialized(self):
         """Ensure the cache manager is initialized with environment variables"""
         if not self._initialized:
+            # Load environment variables from .env file
+            from dotenv import load_dotenv
+            load_dotenv()
+            
             self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
             self.cloud_provider = os.getenv('REDIS_CLOUD_PROVIDER', 'local')
             self.ssl_enabled = os.getenv('REDIS_SSL_ENABLED', 'false').lower() == 'true'
@@ -140,30 +193,32 @@ class RedisCacheManager:
             return False
     
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache"""
-        if not self.is_connected():
-            return None
+        """Get value from cache (Redis or fallback)"""
+        if self.is_connected() and not self._use_fallback:
+            try:
+                value = self.redis_client.get(key)
+                if value:
+                    return json.loads(value)
+                return None
+            except Exception as e:
+                logger.error(f"Error getting key {key} from Redis, using fallback: {e}")
+                self._use_fallback = True
         
-        try:
-            value = self.redis_client.get(key)
-            if value:
-                return json.loads(value)
-            return None
-        except Exception as e:
-            logger.error(f"Error getting key {key} from Redis: {e}")
-            return None
+        # Use in-memory fallback cache
+        return self.fallback_cache.get(key)
     
     def set(self, key: str, value: Any, ttl_seconds: int = 3600) -> bool:
-        """Set value in cache with TTL"""
-        if not self.is_connected():
-            return False
+        """Set value in cache with TTL (Redis or fallback)"""
+        if self.is_connected() and not self._use_fallback:
+            try:
+                serialized_value = json.dumps(value, default=str)
+                return self.redis_client.setex(key, ttl_seconds, serialized_value)
+            except Exception as e:
+                logger.error(f"Error setting key {key} in Redis, using fallback: {e}")
+                self._use_fallback = True
         
-        try:
-            serialized_value = json.dumps(value, default=str)
-            return self.redis_client.setex(key, ttl_seconds, serialized_value)
-        except Exception as e:
-            logger.error(f"Error setting key {key} in Redis: {e}")
-            return False
+        # Use in-memory fallback cache
+        return self.fallback_cache.set(key, value, ttl_seconds)
     
     def delete(self, key: str) -> bool:
         """Delete key from cache"""
@@ -177,42 +232,47 @@ class RedisCacheManager:
             return False
     
     def clear_pattern(self, pattern: str) -> int:
-        """Clear all keys matching a pattern"""
-        if not self.is_connected():
-            return 0
+        """Clear all keys matching a pattern (Redis or fallback)"""
+        if self.is_connected() and not self._use_fallback:
+            try:
+                keys = self.redis_client.keys(pattern)
+                if keys:
+                    return self.redis_client.delete(*keys)
+                return 0
+            except Exception as e:
+                logger.error(f"Error clearing pattern {pattern} from Redis, using fallback: {e}")
+                self._use_fallback = True
         
-        try:
-            keys = self.redis_client.keys(pattern)
-            if keys:
-                return self.redis_client.delete(*keys)
-            return 0
-        except Exception as e:
-            logger.error(f"Error clearing pattern {pattern} from Redis: {e}")
-            return 0
+        # Use fallback cache
+        return self.fallback_cache.clear_pattern(pattern)
     
     def get_stats(self) -> dict:
-        """Get Redis cache statistics"""
-        if not self.is_connected():
-            return {"connected": False, "error": "Redis not connected"}
+        """Get cache statistics (Redis or fallback)"""
+        if self.is_connected() and not self._use_fallback:
+            try:
+                info = self.redis_client.info()
+                return {
+                    "connected": True,
+                    "type": "redis",
+                    "cloud_provider": self.cloud_provider,
+                    "ssl_enabled": self.ssl_enabled,
+                    "used_memory_human": info.get('used_memory_human', 'N/A'),
+                    "connected_clients": info.get('connected_clients', 0),
+                    "total_commands_processed": info.get('total_commands_processed', 0),
+                    "keyspace_hits": info.get('keyspace_hits', 0),
+                    "keyspace_misses": info.get('keyspace_misses', 0),
+                    "uptime_in_seconds": info.get('uptime_in_seconds', 0),
+                    "redis_version": info.get('redis_version', 'N/A'),
+                    "os": info.get('os', 'N/A')
+                }
+            except Exception as e:
+                logger.error(f"Error getting Redis stats: {e}")
+                self._use_fallback = True
         
-        try:
-            info = self.redis_client.info()
-            return {
-                "connected": True,
-                "cloud_provider": self.cloud_provider,
-                "ssl_enabled": self.ssl_enabled,
-                "used_memory_human": info.get('used_memory_human', 'N/A'),
-                "connected_clients": info.get('connected_clients', 0),
-                "total_commands_processed": info.get('total_commands_processed', 0),
-                "keyspace_hits": info.get('keyspace_hits', 0),
-                "keyspace_misses": info.get('keyspace_misses', 0),
-                "uptime_in_seconds": info.get('uptime_in_seconds', 0),
-                "redis_version": info.get('redis_version', 'N/A'),
-                "os": info.get('os', 'N/A')
-            }
-        except Exception as e:
-            logger.error(f"Error getting Redis stats: {e}")
-            return {"connected": True, "error": str(e)}
+        # Return fallback cache stats
+        fallback_stats = self.fallback_cache.get_stats()
+        fallback_stats["redis_error"] = "Redis not connected, using in-memory fallback"
+        return fallback_stats
     
     def get_connection_info(self) -> dict:
         """Get Redis connection information"""
