@@ -7,7 +7,7 @@
   NPM_VERSION = "10"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs@5.15.0"
+  package = "@netlify/plugin-nextjs"
 
 [functions]
   node_bundler = "esbuild"
