@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app with disabled default docs
 app = FastAPI(
-    title="Evo2 Genome API",
-    description="Redis-cached genome data API for Evo2 variant analysis",
+    title="EVO2 Variant Effect Prediction API",
+    description="Genomics API for genome assemblies, gene search, DNA sequences, clinical variants, and AI-powered variant analysis.",
     version="1.0.0",
     docs_url=None,  # Disable default docs
     redoc_url=None,  # Disable default redoc
@@ -236,12 +236,11 @@ Complete genomics API with public endpoints and administrative access for develo
     
     return openapi_schema
 
+
 # Custom docs endpoint with filtering
 @app.get("/docs", response_class=HTMLResponse, include_in_schema=False)
 async def custom_swagger_ui_html(hide_admin: bool = Query(False, description="Hide admin endpoints")):
     """Custom Swagger UI with optional admin endpoint filtering"""
-    from fastapi.openapi.docs import get_swagger_ui_html
-    
     openapi_url = f"/openapi.json?hide_admin={hide_admin}"
     
     # Different titles based on filtering
