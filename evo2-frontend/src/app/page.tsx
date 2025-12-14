@@ -1,7 +1,7 @@
 "use client"
 
-import { Search} from "lucide-react";
-import { useEffect, useState } from "react";
+import { Search, BookOpen, ChevronDown} from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import GeneViewer from "../components/gene-viewer";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -44,6 +44,64 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("search");
+  const [showDocsDropdown, setShowDocsDropdown] = useState(false);
+  const [isLocalEnvironment, setIsLocalEnvironment] = useState(false);
+  const [isEnvironmentDetected, setIsEnvironmentDetected] = useState(false);
+  const docsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Environment detection - done in useEffect to avoid hydration mismatch
+  useEffect(() => {
+    setIsLocalEnvironment(
+      window.location.hostname === 'localhost' || 
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.includes('localhost')
+    );
+    setIsEnvironmentDetected(true);
+  }, []);
+
+  const getSwaggerUrl = (showAdmin = false) => {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://evo2-vep.onrender.com';
+    
+    if (showAdmin) {
+      // Show full documentation including admin endpoints
+      return `${apiBaseUrl}/docs`;
+    } else {
+      // Show filtered docs without admin endpoints
+      return `${apiBaseUrl}/docs?hide_admin=true`;
+    }
+  };
+
+  const handleSwaggerRedirect = (showAdmin = false) => {
+    const swaggerUrl = getSwaggerUrl(showAdmin);
+    window.open(swaggerUrl, '_blank', 'noopener,noreferrer');
+    setShowDocsDropdown(false);
+  };
+
+  // Removed getDefaultDocsMode - now handled directly in the UI logic
+
+  // Close dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (docsDropdownRef.current && !docsDropdownRef.current.contains(event.target as Node)) {
+        setShowDocsDropdown(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowDocsDropdown(false);
+      }
+    };
+
+    if (showDocsDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showDocsDropdown]);
 
   useEffect(() => {
     const fetchGenomes = async () => {
@@ -168,17 +226,103 @@ export default function HomePage() {
     <div className="min-h-screen bg-[var(--color-muted)]">
       <header className="border-b border-[var(--color-border)] bg-[var(--color-card)]">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <h1 className="text-xl font-light tracking-wide text-[var(--color-foreground)]">
-                <span className="font-normal">EVO</span>
-                <span className="text-[var(--color-brand-primary)]">2</span>
-              </h1>
-              <div className="absolute -bottom-1 left-0 h-[2px] w-12 bg-[var(--color-brand-primary)]"></div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <h1 className="text-xl font-light tracking-wide text-[var(--color-foreground)]">
+                  <span className="font-normal">EVO</span>
+                  <span className="text-[var(--color-brand-primary)]">2</span>
+                </h1>
+                <div className="absolute -bottom-1 left-0 h-[2px] w-12 bg-[var(--color-brand-primary)]"></div>
+              </div>
+              <span className="text-sm font-light text-[var(--color-muted-foreground)]">
+                Variant Analysis
+              </span>
             </div>
-            <span className="text-sm font-light text-[var(--color-muted-foreground)]">
-              Variant Analysis
-            </span>
+            
+            {/* API Documentation */}
+            {!isEnvironmentDetected ? (
+              /* Loading state to prevent hydration mismatch */
+              <Button
+                variant="ghost"
+                className="h-9 px-3 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)] flex items-center gap-2"
+                disabled
+                title="Loading..."
+              >
+                <BookOpen className="h-4 w-4" />
+                <span className="text-sm">Docs</span>
+              </Button>
+            ) : isLocalEnvironment ? (
+              /* Development: Show dropdown with options */
+              <div className="relative" ref={docsDropdownRef}>
+                <div className="flex">
+                  <Button
+                    variant="ghost"
+                    className="h-9 px-3 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)] flex items-center gap-2 rounded-r-none"
+                    onClick={() => handleSwaggerRedirect(true)} // Default to full API in development
+                    title="API Documentation"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span className="text-sm">Docs</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="h-9 w-8 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)] rounded-l-none border-l border-[var(--color-border)]"
+                    onClick={() => setShowDocsDropdown(!showDocsDropdown)}
+                    title="Documentation Options"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </div>
+                
+                {showDocsDropdown && (
+                  <div className="absolute right-0 top-full mt-1 w-64 rounded-md border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg z-50">
+                    <div className="px-3 py-2 border-b border-[var(--color-border)]">
+                      <div className="text-xs text-[var(--color-muted-foreground)]">
+                        Environment: <span className="font-medium text-[var(--color-foreground)]">Development</span>
+                      </div>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        className="w-full px-4 py-2 text-left text-sm text-[var(--color-foreground)] hover:bg-[var(--color-muted)] flex items-start gap-3"
+                        onClick={() => handleSwaggerRedirect(false)}
+                      >
+                        <BookOpen className="h-4 w-4 mt-0.5 text-[var(--color-brand-primary)]" />
+                        <div>
+                          <div className="font-medium">Public API</div>
+                          <div className="text-xs text-[var(--color-muted-foreground)]">
+                            User-facing endpoints only
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        className="w-full px-4 py-2 text-left text-sm text-[var(--color-foreground)] hover:bg-[var(--color-muted)] flex items-start gap-3"
+                        onClick={() => handleSwaggerRedirect(true)}
+                      >
+                        <BookOpen className="h-4 w-4 mt-0.5 text-[var(--color-warning)]" />
+                        <div>
+                          <div className="font-medium">Full API</div>
+                          <div className="text-xs text-[var(--color-muted-foreground)]">
+                            Including admin & monitoring
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Production/Netlify: Simple button that goes directly to public docs */
+              <Button
+                variant="ghost"
+                className="h-9 px-3 text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)] flex items-center gap-2"
+                onClick={() => handleSwaggerRedirect(false)} // Always public API in production
+                title="API Documentation"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span className="text-sm">API Docs</span>
+              </Button>
+            )}
           </div>
         </div>
       </header>
